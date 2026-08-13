@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.CourseFile;
+using EducationalPlatform.Application.DTOs.CourseFile;
 using EducationalPlatform.Application.Interfaces.External_services;
 using EducationalPlatform.Application.Interfaces.Repositories;
 using EducationalPlatform.Application.Interfaces.Services;
@@ -34,8 +34,11 @@ namespace EducationalPlatform.Infrastructure.Services
             var course = await _courseRepository.GetByIdAsync(request.CourseId);
             if (course == null) throw new ArgumentException("Invalid CourseId");
 
-            var lesson = await _lessonRepository.GetByIdAsync(request.LessonId);
-            if (lesson == null) throw new ArgumentException("Invalid LessonId");
+            if (request.LessonId.HasValue && request.LessonId.Value != Guid.Empty)
+            {
+                var lesson = await _lessonRepository.GetByIdAsync(request.LessonId.Value);
+                if (lesson == null) throw new ArgumentException("Invalid LessonId");
+            }
 
             var filePath = await _fileStorageService.SaveFileAsync(request.File, request.CourseId.ToString());
 
@@ -43,7 +46,7 @@ namespace EducationalPlatform.Infrastructure.Services
             {
                 Id = Guid.NewGuid(),
                 CourseId = request.CourseId,
-                LessonId = request.LessonId,
+                LessonId = (request.LessonId.HasValue && request.LessonId.Value != Guid.Empty) ? request.LessonId : null,
                 FileName = request.File.FileName,
                 FileType = GetFileType(request.File.ContentType),
                 FileSize = request.File.Length,

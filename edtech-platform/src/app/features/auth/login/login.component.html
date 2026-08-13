@@ -1,0 +1,77 @@
+<div class="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 text-right">
+  <div class="max-w-md w-full space-y-8 bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant shadow-md">
+    <div>
+      <div class="w-12 h-12 rounded-2xl bg-primary text-on-primary font-bold flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm">
+        م
+      </div>
+      <h2 class="text-center text-2xl font-headline-lg font-bold text-on-surface">
+        مرحباً بعودتك!
+      </h2>
+      <p class="mt-2 text-center text-sm font-body-md text-on-surface-variant">
+        سجّل دخولك لمتابعة مسيرتك التعليمية
+      </p>
+    </div>
+
+    @if (errorMessage) {
+      <div class="bg-error-container text-on-error-container p-4 rounded-xl text-sm font-label-md flex items-center gap-2">
+        <span class="material-symbols-outlined text-xl">error</span>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+      <div>
+        <label for="email" class="block text-sm font-label-md text-on-surface mb-2">
+          البريد الإلكتروني
+        </label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="example@domain.com"
+          class="w-full px-4 py-3 rounded-xl border border-outline bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-left"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <p class="text-xs text-error mt-1 font-caption">يرجى إدخال بريد إلكتروني صحيح</p>
+        }
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-label-md text-on-surface mb-2">
+          كلمة المرور
+        </label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          class="w-full px-4 py-3 rounded-xl border border-outline bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-left"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <p class="text-xs text-error mt-1 font-caption">كلمة المرور مطلوبة</p>
+        }
+      </div>
+
+      <div class="flex items-center justify-between text-sm">
+        <a href="#" class="font-label-md text-primary hover:underline">نسيت كلمة المرور؟</a>
+      </div>
+
+      <div>
+        <app-button
+          type="submit"
+          variant="primary"
+          [loading]="loading"
+          [disabled]="form.invalid"
+          class="w-full"
+        >
+          تسجيل الدخول
+        </app-button>
+      </div>
+    </form>
+
+    <div class="text-center text-sm font-body-md text-on-surface-variant border-t border-outline-variant pt-4">
+      ليس لديك حساب بعد؟
+      <a routerLink="/auth/register" class="font-label-md text-primary font-semibold hover:underline">إنشاء حساب جديد</a>
+    </div>
+  </div>
+</div>

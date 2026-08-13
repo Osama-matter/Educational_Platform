@@ -1,4 +1,5 @@
-﻿using EducationalPlatform.Domain.Enums;
+﻿using EducationalPlatform.Domain.Entities.Auth;
+using EducationalPlatform.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
@@ -27,7 +28,7 @@ namespace EducationalPlatform.Domain.Entities {
 
         public virtual ICollection<Review> Reviews { get; set; }
 
-
+        public ICollection<RefreshToken> RefreshTokens { get; set; }
         public User()
         {
             CreatedAt = DateTime.UtcNow;

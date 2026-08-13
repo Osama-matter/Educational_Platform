@@ -1,0 +1,81 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-right">
+  <div class="mb-8">
+    <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-2">تصفح الدورات التعليمية</h1>
+    <p class="font-body-md text-on-surface-variant text-sm">استكشف جميع المسارات التعليمية المتاحة</p>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
+    <div class="relative w-full md:w-96">
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+        placeholder="ابحث عن دورة، محاضر، أو كلمة مفتاحية..."
+        class="w-full pl-4 pr-10 py-3 rounded-xl border border-outline bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+      />
+      <span class="material-symbols-outlined absolute right-3 top-3 text-outline">search</span>
+    </div>
+
+    <div class="flex items-center gap-3 w-full md:w-auto">
+      <span class="font-label-md text-on-surface-variant text-sm whitespace-nowrap">النوع:</span>
+      <button
+        (click)="filterType = 'all'; applyFilter()"
+        class="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+        [ngClass]="filterType === 'all' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'"
+      >
+        الكل
+      </button>
+      <button
+        (click)="filterType = 'free'; applyFilter()"
+        class="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+        [ngClass]="filterType === 'free' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'"
+      >
+        مجاني
+      </button>
+      <button
+        (click)="filterType = 'paid'; applyFilter()"
+        class="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+        [ngClass]="filterType === 'paid' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'"
+      >
+        مدفوع
+      </button>
+    </div>
+  </div>
+
+  <!-- Course Grid -->
+  @if (loading) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div *ngFor="let i of [1,2,3,4,5,6]" class="h-80 bg-surface-container-high rounded-xl animate-pulse"></div>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      @for (course of filteredCourses; track course.id) {
+        <app-course-card [course]="course" />
+      } @empty {
+        <div class="col-span-3 text-center py-16 bg-surface-container-lowest rounded-2xl border border-outline-variant space-y-3">
+          <div class="w-16 h-16 rounded-full bg-surface-container text-on-surface-variant mx-auto flex items-center justify-center">
+            <span class="material-symbols-outlined text-4xl">search_off</span>
+          </div>
+          <h3 class="font-headline-md text-lg text-on-surface font-semibold">لم يتم العثور على أي دورات</h3>
+          <p class="text-on-surface-variant font-body-md text-sm max-w-md mx-auto">
+            تأكد من كتابة الكلمات بشكل صحيح، أو جرب إعادة ضبط خيارات التصفية والبحث لعرض جميع الدورات المتاحة.
+          </p>
+          <div class="pt-2">
+            <button (click)="searchQuery = ''; filterType = 'all'; applyFilter()" class="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-xs font-semibold hover:opacity-90 transition-all">
+              إعادة ضبط تصفية البحث
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
+

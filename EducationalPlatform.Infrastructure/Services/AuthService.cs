@@ -71,13 +71,22 @@ namespace EducationalPlatform.Infrastructure.Services
                 throw new System.Exception($"Assign role failed: {errorDetails}");
             }
 
-            await _emailService.SendWelcomeEmailAsync(user.Email, user.UserName);
+            try
+            {
+                await _emailService.SendWelcomeEmailAsync(user.Email, user.UserName);
+            }
+            catch (System.Exception ex)
+            {
+                // Email sending failure shouldn't fail user creation
+                System.Console.WriteLine($"[AuthService Warning] Welcome email failed: {ex.Message}");
+            }
 
             return new UserDto
             {
                 Email = user.Email,
                 Token = await _jwtTokenService.GenerateTokenAsync(user)
             };
+
         }
 
         public async Task<UserDto> LoginAsync(LoginDto loginDto)

@@ -1,0 +1,138 @@
+<div class="max-w-7xl mx-auto text-right space-y-8 pb-12">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-1">إدارة الصلاحيات والأمان</h1>
+      <p class="font-body-md text-on-surface-variant text-sm">تخصيص الأدوار والصلاحيات وإنشاء وتتبع مسؤولي ومستخدمي النظام</p>
+    </div>
+
+    <app-button variant="primary" icon="person_add" (onClick)="openAdminModal()">
+      إنشاء مسؤول جديد (Admin)
+    </app-button>
+  </div>
+
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل بيانات الأدوار والصلاحيات...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else if (rolesStats) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="px-3 py-1 rounded-full bg-primary-container/20 text-primary text-xs font-semibold">Admin</span>
+          <span class="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
+        </div>
+        <div>
+          <h3 class="font-headline-md text-lg font-bold text-on-surface">مدير النظام</h3>
+          <p class="font-body-md text-on-surface-variant text-xs mt-1">صلاحيات كاملة للوصول لجميع الأقسام، إنشاء الدورات، وتعيين الأدوار.</p>
+        </div>
+        <div class="pt-2 border-t border-outline-variant/60 flex items-center justify-between">
+          <span class="text-xs text-on-surface-variant">العدد المسجل:</span>
+          <span class="text-base font-bold font-mono text-primary">{{ rolesStats.adminCount | number }} مسؤولين</span>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary text-xs font-semibold">Instructor</span>
+          <span class="material-symbols-outlined text-secondary text-2xl">school</span>
+        </div>
+        <div>
+          <h3 class="font-headline-md text-lg font-bold text-on-surface">المحاضر</h3>
+          <p class="font-body-md text-on-surface-variant text-xs mt-1">إنشاء وتعديل محتوى الدورات وإضافة الاختبارات والمرفقات التعليمية والرد على التقييمات.</p>
+        </div>
+        <div class="pt-2 border-t border-outline-variant/60 flex items-center justify-between">
+          <span class="text-xs text-on-surface-variant">العدد المسجل:</span>
+          <span class="text-base font-bold font-mono text-secondary">{{ rolesStats.instructorCount | number }} محاضر</span>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="px-3 py-1 rounded-full bg-tertiary-container/20 text-tertiary text-xs font-semibold">Student</span>
+          <span class="material-symbols-outlined text-tertiary text-2xl">person</span>
+        </div>
+        <div>
+          <h3 class="font-headline-md text-lg font-bold text-on-surface">الطالب</h3>
+          <p class="font-body-md text-on-surface-variant text-xs mt-1">التسجيل في الدورات، مشاهدة الدروس، أداء الاختبارات، التفاعل بالمنتدى، واستلام الشهادات.</p>
+        </div>
+        <div class="pt-2 border-t border-outline-variant/60 flex items-center justify-between">
+          <span class="text-xs text-on-surface-variant">العدد المسجل:</span>
+          <span class="text-base font-bold font-mono text-tertiary">{{ rolesStats.studentCount | number }} طالب</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Register Admin Modal -->
+  @if (showAdminModal) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
+            <h3 class="font-bold text-xl text-on-surface">إنشاء حساب مسؤول جديد (Admin)</h3>
+          </div>
+          <button (click)="closeAdminModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        @if (modalErrorMessage) {
+          <div class="p-3.5 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm font-semibold">
+            {{ modalErrorMessage }}
+          </div>
+        }
+        @if (modalSuccessMessage) {
+          <div class="p-3.5 rounded-xl bg-primary-container/20 border border-primary/30 text-primary text-sm font-semibold">
+            {{ modalSuccessMessage }}
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">الاسم الأول</label>
+              <input type="text" [(ngModel)]="newAdmin.firstName" placeholder="مثال: أحمد"
+                     class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">الاسم الأخير</label>
+              <input type="text" [(ngModel)]="newAdmin.lastName" placeholder="مثال: المنصور"
+                     class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">اسم المستخدم (Username) <span class="text-error">*</span></label>
+            <input type="text" [(ngModel)]="newAdmin.username" placeholder="مثال: admin_ahmed"
+                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">البريد الإلكتروني <span class="text-error">*</span></label>
+            <input type="email" [(ngModel)]="newAdmin.email" placeholder="admin@example.com"
+                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">كلمة المرور <span class="text-error">*</span></label>
+            <input type="password" [(ngModel)]="newAdmin.password" placeholder="••••••••"
+                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeAdminModal()">إلغاء</app-button>
+          <app-button variant="primary" [loading]="savingAdmin" (onClick)="createAdmin()">تأكيد إنشاء المسؤول</app-button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,424 @@
+<div class="bg-[#f8fafc] text-[#0f172a] flex flex-col font-sans pb-28 antialiased selection:bg-teal-500 selection:text-white" dir="rtl">
+
+  @if (loading) {
+    <div class="flex-grow flex flex-col items-center justify-center p-12 text-center">
+      <div class="animate-spin w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full mb-4"></div>
+      <p class="text-slate-500 font-semibold text-sm">جاري تحميل المحتوى التعليمي...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="flex-grow flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md mx-auto">
+      <div class="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+        <span class="material-symbols-outlined text-3xl">error</span>
+      </div>
+      <h2 class="text-xl font-bold text-slate-800">{{ errorMessage }}</h2>
+      <button (click)="loadData()" class="px-6 py-2.5 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-all cursor-pointer">
+        إعادة المحاولة
+      </button>
+    </div>
+  } @else if (lessons.length === 0) {
+    <div class="flex-grow flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-lg mx-auto">
+      <div class="w-20 h-20 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl">auto_stories</span>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-800">لم يتم نشر دروس لهذه الدورة بعد</h2>
+      <p class="text-slate-500 text-sm leading-relaxed">
+        أنت مسجل بنجاح في الدورة. سيقوم المحاضر أو إدارة المنصة برفع المحتوى والدروس التفاعلية قريباً.
+      </p>
+      <button (click)="goBack()" class="px-6 py-2.5 rounded-xl bg-teal-700 text-white font-bold hover:bg-teal-800 transition-all cursor-pointer">
+        العودة للوحة التحكم
+      </button>
+    </div>
+  } @else {
+    <!-- Main Content Stream Container -->
+    <main class="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-4 space-y-6">
+
+      <!-- Real Video Player Hero Box with Anti-Piracy Protection -->
+      <div
+        #videoContainer
+        class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-xl bg-slate-900 group"
+      >
+        @if (hasVideo && isDirectVideo && safeVideoUrl) {
+          <!-- HTML5 Video Player for MP4/WebM -->
+          <video
+            [src]="safeVideoUrl"
+            controls
+            playsinline
+            class="w-full h-full object-contain bg-black"
+          ></video>
+        } @else if (hasVideo && safeVideoUrl) {
+          <!-- Interactive Video / YouTube Player -->
+          <iframe
+            [src]="safeVideoUrl"
+            class="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
+        } @else {
+          <!-- Dynamic Fallback Player Frame -->
+          <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-teal-950 flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-20 h-20 rounded-full bg-teal-600/30 border-2 border-teal-500/50 text-teal-400 flex items-center justify-center mb-3 shadow-xl backdrop-blur-xs">
+              <span class="material-symbols-outlined text-4xl">play_lesson</span>
+            </div>
+            <h3 class="text-white text-xl font-bold mb-1">{{ activeLesson?.title }}</h3>
+            <p class="text-slate-400 text-xs font-medium">الدرس متاح للقراءة ومتابعة الشرح التفاعلي</p>
+          </div>
+        }
+
+        <!-- 1. Floating Dynamic Watermark (Moves across video area every 8s) -->
+        <div
+          class="absolute pointer-events-none touch-none transition-all duration-1000 ease-in-out z-20 select-none"
+          [style.top.%]="watermarkTop"
+          [style.left.%]="watermarkLeft"
+        >
+          <div class="bg-black/60 backdrop-blur-xs text-white/90 px-3 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-bold tracking-wider shadow-lg border border-white/20 flex items-center gap-2 pointer-events-none touch-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span class="truncate max-w-[140px] sm:max-w-none">{{ studentName() }}</span>
+            <span class="text-white/60 text-[9px]">{{ watermarkTimestamp }}</span>
+          </div>
+        </div>
+
+        <!-- 2. Permanent Corner Watermark -->
+        <div class="absolute bottom-2 left-2 pointer-events-none touch-none z-20 text-[9px] sm:text-[10px] font-mono text-white/50 drop-shadow-md select-none">
+          {{ studentEmail() }}
+        </div>
+
+        <!-- Custom Fullscreen Button -->
+        <button
+          (click)="toggleFullscreen()"
+          class="absolute top-2 left-2 z-20 p-1.5 rounded-xl bg-black/40 hover:bg-black/70 text-white/80 hover:text-white transition-all backdrop-blur-xs cursor-pointer"
+          title="ملء الشاشة مع حماية الملكية"
+        >
+          <span class="material-symbols-outlined text-lg">fullscreen</span>
+        </button>
+      </div>
+
+      <!-- Lesson Metadata Header -->
+      <div class="space-y-1.5 text-right pt-1">
+        <span class="text-xs sm:text-sm font-bold text-[#b45309] block font-sans">
+          الوحدة {{ activeLesson?.orderIndex ?? 1 }} • الدرس {{ activeLesson?.orderIndex ?? 1 }}
+          @if (activeLesson?.durationMinutes) {
+            <span class="text-slate-400 font-normal mr-2">({{ activeLesson?.durationMinutes }} دقيقة)</span>
+          }
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#0f172a] leading-snug">
+          {{ activeLesson?.title }}
+        </h2>
+      </div>
+
+      <!-- Action Button: Mark as Complete -->
+      <div>
+        <button
+          (click)="markComplete()"
+          [disabled]="completing"
+          class="w-full py-4 px-6 rounded-2xl bg-[#8a4b08] hover:bg-[#733d06] active:scale-[0.99] text-white font-bold text-base sm:text-lg flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer disabled:opacity-75"
+        >
+          @if (completing) {
+            <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>جاري التحديث...</span>
+          } @else if (activeLesson && completedLessonIds.has(activeLesson.id)) {
+            <span class="material-symbols-outlined text-2xl text-emerald-300">check_circle</span>
+            <span>تم إكمال هذا الدرس بنجاح</span>
+          } @else {
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+            <span>تحديد كـ مكتمل</span>
+          }
+        </button>
+      </div>
+
+      <!-- Tabs Navigation Bar -->
+      <div class="border-b border-slate-200 flex items-center justify-start gap-8 text-sm font-bold overflow-x-auto no-scrollbar pt-2">
+        <button
+          (click)="activeTab = 'content'"
+          class="pb-3 px-1 transition-all relative whitespace-nowrap cursor-pointer"
+          [ngClass]="activeTab === 'content' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'"
+        >
+          <span>محتوى الدرس</span>
+          @if (activeTab === 'content') {
+            <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
+          }
+        </button>
+
+        <button
+          (click)="activeTab = 'qa'"
+          class="pb-3 px-1 transition-all relative whitespace-nowrap cursor-pointer"
+          [ngClass]="activeTab === 'qa' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'"
+        >
+          <span>الأسئلة والأجوبة ({{ forumThreads.length }})</span>
+          @if (activeTab === 'qa') {
+            <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
+          }
+        </button>
+
+        <button
+          (click)="activeTab = 'attachments'"
+          class="pb-3 px-1 transition-all relative whitespace-nowrap cursor-pointer"
+          [ngClass]="activeTab === 'attachments' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'"
+        >
+          <span>المرفقات ({{ courseFiles.length }})</span>
+          @if (activeTab === 'attachments') {
+            <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
+          }
+        </button>
+
+        <button
+          (click)="activeTab = 'notes'"
+          class="pb-3 px-1 transition-all relative whitespace-nowrap cursor-pointer"
+          [ngClass]="activeTab === 'notes' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'"
+        >
+          <span>ملاحظاتي</span>
+          @if (activeTab === 'notes') {
+            <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
+          }
+        </button>
+      </div>
+
+      <!-- Tab 1: Lesson Content -->
+      @if (activeTab === 'content') {
+        <div class="space-y-6 animate-in fade-in duration-200">
+          <!-- Text Paragraph -->
+          @if (getCleanLessonContent()) {
+            <p class="text-slate-700 text-sm sm:text-base leading-relaxed text-right font-normal">
+              {{ getCleanLessonContent() }}
+            </p>
+          } @else {
+            <p class="text-slate-700 text-sm sm:text-base leading-relaxed text-right font-normal">
+              في هذا الدرس سنتناول شرح المفاهيم التطبيقية الخاصة بـ "{{ activeLesson?.title }}"، يرجى متابعة الفيديو المسجل وتطبيق الأمثلة العملية.
+            </p>
+          }
+
+          <!-- Key Points Box (النقاط الرئيسية) -->
+          <div class="bg-[#f0f9ff] border border-[#bae6fd]/60 rounded-3xl p-5 sm:p-6 text-right space-y-4 shadow-xs">
+            <div class="flex items-center gap-2.5 text-slate-800 font-bold text-base">
+              <span class="material-symbols-outlined text-teal-700 text-xl font-bold">lightbulb</span>
+              <span>النقاط الرئيسية</span>
+            </div>
+
+            <ul class="space-y-3 text-sm sm:text-base text-slate-700 pr-1">
+              @for (point of getLessonKeyPoints(); track $index) {
+                <li class="flex items-start gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full border-2 border-amber-600 mt-1.5 shrink-0"></span>
+                  <span>{{ point }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <!-- Real Instructor Profile Card -->
+          <div class="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 flex items-center justify-between shadow-xs">
+            <div class="text-right flex-1 pr-2">
+              <h4 class="font-bold text-slate-800 text-base sm:text-lg mb-0.5">
+                {{ course?.instructorName || 'محاضر الدورة المعتمد' }}
+              </h4>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">مقدّم ومعد المادة التعليمية</p>
+            </div>
+
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden shrink-0 border-2 border-teal-600/30 shadow-xs bg-slate-100 flex items-center justify-center">
+              @if (course?.imageUrl) {
+                <img [src]="course?.imageUrl" [alt]="course?.instructorName || 'المحاضر'" class="w-full h-full object-cover" />
+              } @else {
+                <span class="font-bold text-teal-700 text-xl">{{ (course?.instructorName || 'م')[0] }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Tab 2: Real Q&A (الأسئلة والأجوبة) -->
+      @if (activeTab === 'qa') {
+        <div class="space-y-5 animate-in fade-in duration-200">
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 text-right">
+            <label class="block text-xs font-bold text-slate-700">لديك سؤال أو استفسار حول هذا الدرس؟</label>
+            <input
+              type="text"
+              [(ngModel)]="newQuestionTitle"
+              placeholder="عنوان السؤال..."
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-teal-600"
+            />
+            <textarea
+              [(ngModel)]="newQuestionContent"
+              rows="2"
+              placeholder="تفاصيل السؤال واستفسارك..."
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-teal-600"
+            ></textarea>
+            <div class="flex justify-end">
+              <button
+                (click)="addQuestion()"
+                [disabled]="submittingQuestion"
+                class="px-5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {{ submittingQuestion ? 'جاري الإرسال...' : 'طرح السؤال' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            @for (q of forumThreads; track q.id) {
+              <div class="bg-white rounded-2xl border border-slate-200/80 p-4 text-right space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                  <span class="font-bold text-slate-800">{{ q.authorName || 'طالب' }}</span>
+                  <span class="font-mono">{{ q.createdAt | date:'mediumDate' }}</span>
+                </div>
+                <h5 class="font-bold text-sm text-slate-900">{{ q.title }}</h5>
+                <p class="text-xs text-slate-600 leading-relaxed">{{ q.content }}</p>
+                <div class="pt-2 border-t border-slate-100 flex items-center gap-4 text-xs text-teal-700 font-semibold">
+                  <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">chat</span>
+                    <span>{{ q.postsCount || 0 }} ردود</span>
+                  </span>
+                  <span class="flex items-center gap-1 text-slate-400 font-normal">
+                    <span class="material-symbols-outlined text-sm">thumb_up</span>
+                    <span>{{ q.votesCount || 0 }} تصويت</span>
+                  </span>
+                </div>
+              </div>
+            } @empty {
+              <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">
+                لا توجد أسئلة سابقة حول هذا الدرس. كن أول من يطرح سؤالاً!
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Tab 3: Real Attachments (المرفقات) -->
+      @if (activeTab === 'attachments') {
+        <div class="space-y-3 animate-in fade-in duration-200">
+          @for (file of courseFiles; track file.id) {
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 flex items-center justify-between text-right">
+              <div class="flex items-center gap-3">
+                <span class="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                  <span class="material-symbols-outlined">description</span>
+                </span>
+                <div>
+                  <h4 class="font-bold text-sm text-slate-800">{{ file.fileName }}</h4>
+                  <span class="text-xs text-slate-400">ملف مرفق للتحميل</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                (click)="downloadFile(file, $event)"
+                class="px-3 py-1.5 rounded-xl bg-slate-100 text-teal-700 hover:bg-teal-50 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <span class="material-symbols-outlined text-sm">download</span>
+                <span>تحميل</span>
+              </button>
+            </div>
+          } @empty {
+            <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">
+              لا توجد ملفات مرفقة لهذا المقرر حالياً.
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Tab 4: Real Notes (ملاحظاتي) -->
+      @if (activeTab === 'notes') {
+        <div class="space-y-4 bg-white rounded-3xl border border-slate-200 p-5 text-right animate-in fade-in duration-200">
+          <label class="block text-sm font-bold text-slate-800">ملاحظاتك الشخصية على هذا الدرس:</label>
+          <textarea
+            [(ngModel)]="userNote"
+            rows="6"
+            placeholder="دوّن ملاحظاتك وملخصاتك المهمة للرجوع إليها لاحقاً..."
+            class="w-full p-4 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:border-teal-600 leading-relaxed"
+          ></textarea>
+          <div class="flex justify-end">
+            <button
+              (click)="saveNote()"
+              class="px-5 py-2.5 rounded-xl bg-teal-700 text-white font-bold text-xs hover:bg-teal-800 transition-colors cursor-pointer"
+            >
+              حفظ الملاحظات
+            </button>
+          </div>
+        </div>
+      }
+
+    </main>
+
+    <!-- Bottom Floating Navigation Bar -->
+    <div class="fixed bottom-4 inset-x-0 z-40 flex items-center justify-center px-4 pointer-events-none">
+      <div class="bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-2xl rounded-full p-2 flex items-center justify-between gap-3 w-full max-w-sm pointer-events-auto">
+
+        <!-- Next / Prev Right Arrow (In RTL, this moves to next) -->
+        <button
+          (click)="goToNextLesson()"
+          [disabled]="!hasNextLesson()"
+          class="w-12 h-12 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          title="الدرس التالي"
+        >
+          <span class="material-symbols-outlined text-2xl font-bold">arrow_forward</span>
+        </button>
+
+        <!-- Center Pill: قائمة الدروس (Opens Drawer) -->
+        <button
+          (click)="openLessonsDrawer()"
+          class="flex-1 py-3 px-5 rounded-full bg-[#e0f2fe] text-[#0369a1] hover:bg-[#bae6fd] active:scale-95 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+        >
+          <span class="material-symbols-outlined text-lg">format_list_bulleted</span>
+          <span>قائمة الدروس</span>
+        </button>
+
+        <!-- Previous Left Teal Circle Button -->
+        <button
+          (click)="goToPreviousLesson()"
+          [disabled]="!hasPreviousLesson()"
+          class="w-12 h-12 rounded-full bg-[#005f5f] hover:bg-[#004d4d] text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          title="الدرس السابق"
+        >
+          <span class="material-symbols-outlined text-2xl font-bold">arrow_back</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Slide-over Drawer for Lessons List -->
+    @if (showLessonsDrawer) {
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex justify-start animate-in fade-in duration-200">
+        <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col text-right animate-in slide-in-from-right duration-300">
+
+          <!-- Drawer Header -->
+          <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-teal-700 text-2xl">menu_book</span>
+              <h3 class="font-bold text-lg text-slate-800">منهاج وقائمة دروس الدورة</h3>
+            </div>
+            <button (click)="closeLessonsDrawer()" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <!-- Lessons List -->
+          <div class="flex-grow overflow-y-auto p-4 space-y-2.5">
+            @for (lesson of lessons; track lesson.id; let idx = $index) {
+              <button
+                (click)="selectLesson(lesson)"
+                class="w-full p-4 rounded-2xl border text-right transition-all flex items-center justify-between cursor-pointer"
+                [ngClass]="activeLesson?.id === lesson.id
+                  ? 'bg-teal-50 border-teal-600 text-teal-800 font-bold shadow-xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-lg"
+                        [ngClass]="completedLessonIds.has(lesson.id) ? 'text-emerald-600' : 'text-slate-400'">
+                    {{ completedLessonIds.has(lesson.id) ? 'check_circle' : 'play_circle' }}
+                  </span>
+                  <div>
+                    <div class="text-sm">{{ idx + 1 }}. {{ lesson.title }}</div>
+                    <span class="text-xs text-slate-400 font-normal">المدة: {{ lesson.durationMinutes }} دقيقة</span>
+                  </div>
+                </div>
+
+                @if (activeLesson?.id === lesson.id) {
+                  <span class="px-2 py-0.5 rounded-full bg-teal-600 text-white text-[10px] font-bold">الدرس الحالي</span>
+                }
+              </button>
+            }
+          </div>
+
+        </div>
+      </div>
+    }
+  }
+
+</div>

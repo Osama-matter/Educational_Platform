@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.Interfaces.External_services;
+using EducationalPlatform.Application.Interfaces.External_services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -22,7 +22,7 @@ namespace EducationalPlatform.Infrastructure.Services.External_services
         public async Task<string> SaveCourseImageAsync(IFormFile imageFile)
         {
             if (imageFile == null || imageFile.Length == 0)
-                throw new ArgumentException("No image provided.");
+                return "/course-images/default-course.png";
 
             var rootPath = _environment.WebRootPath
                 ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -45,6 +45,9 @@ namespace EducationalPlatform.Infrastructure.Services.External_services
         // ---------- Update ----------
         public async Task<string> UpdateCourseImageAsync(string existingImageUrl, IFormFile newImageFile)
         {
+            if (newImageFile == null || newImageFile.Length == 0)
+                return existingImageUrl;
+
             if (!string.IsNullOrWhiteSpace(existingImageUrl))
                 await DeleteCourseImageAsync(existingImageUrl);
 

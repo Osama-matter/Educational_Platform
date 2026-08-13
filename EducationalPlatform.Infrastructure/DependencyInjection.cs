@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.Courses;
+using EducationalPlatform.Application.DTOs.Courses;
 using EducationalPlatform.Application.Interfaces.External_services;
 using EducationalPlatform.Application.Interfaces.Repositories;
 using EducationalPlatform.Application.Interfaces.Services;
@@ -49,6 +49,8 @@ namespace EducationalPlatform.Infrastructure
             services.AddScoped<IReviewRepository, ReviewRepository>();
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IAnalyticsService, AnalyticsService>();
+
 
             services.AddScoped<IForumPostRepository, ForumPostRepository>();
             services.AddScoped<IForumPostService, ForumPostService>();

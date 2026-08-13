@@ -1,0 +1,444 @@
+<div class="max-w-7xl mx-auto text-right space-y-8 pb-12">
+  <!-- Header with Course and Lesson Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-1">إدارة الدورات ومحتواها</h1>
+      <p class="font-body-md text-on-surface-variant text-sm">إنشاء وتعديل وإدارة الدورات والدروس والمرفقات التعليمية</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <app-button variant="outline" icon="playlist_add" (onClick)="openAddLessonModal()">
+        إضافة درس جديد
+      </app-button>
+      <app-button variant="primary" icon="add" (onClick)="openCreateCourseModal()">
+        إضافة دورة جديدة
+      </app-button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل قائمة الدورات ومحتواها...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else {
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+      <table class="w-full text-right border-collapse">
+        <thead>
+          <tr class="bg-surface-container border-b border-outline-variant text-on-surface-variant font-label-md text-sm">
+            <th class="p-4">عنوان الدورة</th>
+            <th class="p-4">السعر</th>
+            <th class="p-4">المدة</th>
+            <th class="p-4">الأقسام</th>
+            <th class="p-4">الحالة</th>
+            <th class="p-4 text-center">الإجراءات والدروس</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/60 font-body-md text-sm">
+          @for (course of courses; track course.id) {
+            <!-- Main Course Row -->
+            <tr class="hover:bg-surface-container-low transition-colors" [class.bg-surface-container-low]="expandedCourseId === course.id">
+              <td class="p-4 font-bold text-on-surface">
+                <div class="flex items-center gap-2">
+                  <button (click)="toggleCourseLessons(course.id)" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-lg">
+                    <span class="material-symbols-outlined text-lg transition-transform duration-200" [class.rotate-90]="expandedCourseId === course.id">
+                      chevron_left
+                    </span>
+                  </button>
+                  <span>{{ course.title }}</span>
+                </div>
+              </td>
+              <td class="p-4 font-mono font-medium">{{ course.price > 0 ? (course.price + ' ج.م') : 'مجاني' }}</td>
+              <td class="p-4 font-mono">{{ course.estimatedDurationHours }} ساعة</td>
+              <td class="p-4">{{ course.numberOfSections }} أقسام</td>
+              <td class="p-4">
+                <app-badge [text]="course.isActive ? 'نشطة' : 'مسودة'" [variant]="course.isActive ? 'primary' : 'neutral'" />
+              </td>
+              <td class="p-4">
+                <div class="flex items-center justify-center gap-2">
+                  <!-- Add Lesson directly to this course -->
+                  <button
+                    (click)="openAddLessonModal(course)"
+                    class="px-2.5 py-1.5 rounded-xl bg-primary-container/40 text-primary hover:bg-primary-container text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer shadow-sm"
+                    title="إضافة درس إلى هذه الدورة"
+                  >
+                    <span class="material-symbols-outlined text-base">add_circle</span>
+                    <span>درس</span>
+                  </button>
+
+                  <!-- Course Files Manager -->
+                  <button
+                    (click)="openFilesModal(course)"
+                    class="px-2.5 py-1.5 rounded-xl bg-secondary-container/40 text-secondary hover:bg-secondary-container text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer shadow-sm"
+                    title="إدارة المرفقات والملفات"
+                  >
+                    <span class="material-symbols-outlined text-base">folder</span>
+                    <span>الملفات</span>
+                  </button>
+
+                  <!-- Toggle Lessons View -->
+                  <button
+                    (click)="toggleCourseLessons(course.id)"
+                    class="px-2.5 py-1.5 rounded-xl bg-surface-container-high text-on-surface hover:bg-surface-container-highest text-xs font-medium transition-all inline-flex items-center gap-1 cursor-pointer"
+                    title="عرض الدروس"
+                  >
+                    <span class="material-symbols-outlined text-base">menu_book</span>
+                    <span>{{ expandedCourseId === course.id ? 'إخفاء' : 'الدروس' }}</span>
+                  </button>
+
+                  <!-- Edit Course -->
+                  <button
+                    (click)="openEditCourseModal(course)"
+                    class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-xl transition-colors cursor-pointer"
+                    title="تعديل بيانات الدورة"
+                  >
+                    <span class="material-symbols-outlined text-lg">edit</span>
+                  </button>
+
+                  <!-- Delete Course -->
+                  <button
+                    (click)="deleteCourse(course.id)"
+                    class="p-1.5 text-error hover:bg-error-container/20 rounded-xl transition-colors cursor-pointer"
+                    title="حذف الدورة"
+                  >
+                    <span class="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Expanded Lessons Accordion Section -->
+            @if (expandedCourseId === course.id) {
+              <tr class="bg-surface-container-low/60">
+                <td colspan="6" class="p-4 sm:p-6 border-y border-outline-variant/60">
+                  <div class="bg-surface rounded-2xl border border-outline-variant p-5 space-y-4 shadow-inner">
+                    <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+                      <div class="flex items-center gap-2 text-on-surface font-bold text-base">
+                        <span class="material-symbols-outlined text-primary">menu_book</span>
+                        <span>قائمة الدروس في دورة: {{ course.title }}</span>
+                      </div>
+
+                      <app-button variant="primary" icon="add" (onClick)="openAddLessonModal(course)">
+                        إضافة درس جديد
+                      </app-button>
+                    </div>
+
+                    @if (loadingLessons[course.id]) {
+                      <div class="py-6 text-center text-on-surface-variant text-xs space-y-2">
+                        <div class="inline-block animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                        <p>جاري جلب دروس الدورة...</p>
+                      </div>
+                    } @else if ((courseLessons[course.id] || []).length === 0) {
+                      <div class="py-8 text-center text-on-surface-variant space-y-3">
+                        <span class="material-symbols-outlined text-3xl text-on-surface-variant/70">post_add</span>
+                        <p class="text-sm font-semibold">لا توجد دروس مضافة لهذه الدورة حتى الآن.</p>
+                        <app-button variant="outline" icon="add" (onClick)="openAddLessonModal(course)">
+                          إضافة أول درس للدورة
+                        </app-button>
+                      </div>
+                    } @else {
+                      <div class="space-y-2">
+                        @for (lesson of courseLessons[course.id]; track lesson.id) {
+                          <div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant hover:border-primary/40 transition-colors">
+                            <div class="flex items-center gap-3">
+                              <span class="w-7 h-7 rounded-lg bg-primary-container/30 text-primary font-mono font-bold text-xs flex items-center justify-center">
+                                {{ lesson.orderIndex ?? lesson.order ?? '1' }}
+                              </span>
+                              <div>
+                                <h4 class="font-bold text-sm text-on-surface">{{ lesson.title }}</h4>
+                                <p class="text-xs text-on-surface-variant line-clamp-1 mt-0.5">{{ lesson.content || 'لا يوجد وصف تفصيلي' }}</p>
+                              </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                              <span class="text-xs font-mono text-on-surface-variant flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">schedule</span>
+                                {{ lesson.durationMinutes || 15 }} دقيقة
+                              </span>
+
+                              <!-- Edit Lesson -->
+                              <button
+                                (click)="openEditLessonModal(course, lesson)"
+                                class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer"
+                                title="تعديل الدرس"
+                              >
+                                <span class="material-symbols-outlined text-base">edit</span>
+                              </button>
+
+                              <!-- Delete Lesson -->
+                              <button
+                                (click)="deleteLesson(course.id, lesson.id)"
+                                [disabled]="deletingLessonId === lesson.id"
+                                class="p-1.5 text-error hover:bg-error-container/20 rounded-lg transition-colors cursor-pointer"
+                                title="حذف الدرس"
+                              >
+                                <span class="material-symbols-outlined text-base">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-8 text-on-surface-variant">لا توجد دورات مسجلة حتى الآن</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal: Add / Edit Lesson -->
+  @if (showLessonModal) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">{{ editingLessonId ? 'edit_note' : 'playlist_add' }}</span>
+            <h3 class="font-bold text-xl text-on-surface">{{ editingLessonId ? 'تعديل بيانات الدرس' : 'إضافة درس جديد' }}</h3>
+          </div>
+          <button (click)="closeLessonModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        @if (lessonModalErrorMessage) {
+          <div class="p-3.5 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">error</span>
+            <span>{{ lessonModalErrorMessage }}</span>
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">الدورة المستهدفة</label>
+            <select
+              [ngModel]="newLesson.courseId"
+              (ngModelChange)="onCourseSelectionChange($event)"
+              [disabled]="editingLessonId !== null"
+              class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-medium"
+            >
+              @for (c of courses; track c.id) {
+                <option [value]="c.id">{{ c.title }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">عنوان الدرس <span class="text-error">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="newLesson.title"
+              placeholder="مثال: مقدمة في الـ Dependency Injection..."
+              class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">محتوى الدرس أو رابط الفيديو</label>
+            <textarea
+              [(ngModel)]="newLesson.content"
+              rows="3"
+              placeholder="أدخل نص المحتوى أو رابط الفيديو أو الشرح..."
+              class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm"
+            ></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">ترتيب الدرس</label>
+              <input
+                type="number"
+                [(ngModel)]="newLesson.orderIndex"
+                min="1"
+                class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">المدة (بالدقائق)</label>
+              <input
+                type="number"
+                [(ngModel)]="newLesson.durationMinutes"
+                min="1"
+                class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeLessonModal()">إلغاء</app-button>
+          <app-button variant="primary" icon="check" [loading]="savingLesson" (onClick)="saveLesson()">
+            {{ editingLessonId ? 'حفظ التعديلات' : 'حفظ ونشر الدرس' }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Create / Edit Course -->
+  @if (showCourseModal) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <h3 class="font-bold text-xl text-on-surface">{{ editingCourseId ? 'تعديل بيانات الدورة' : 'إضافة دورة جديدة' }}</h3>
+          <button (click)="closeCourseModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        @if (courseModalErrorMessage) {
+          <div class="p-3.5 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm font-semibold">
+            {{ courseModalErrorMessage }}
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">عنوان الدورة <span class="text-error">*</span></label>
+            <input type="text" [(ngModel)]="newCourse.title" placeholder="أدخل عنوان الدورة..."
+                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">الوصف</label>
+            <textarea [(ngModel)]="newCourse.description" rows="3" placeholder="وصف الدورة التعليمية..."
+                      class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm"></textarea>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">السعر (ج.م)</label>
+              <input type="number" [(ngModel)]="newCourse.price" min="0"
+                     class="w-full px-3 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">المدة (ساعة)</label>
+              <input type="number" [(ngModel)]="newCourse.estimatedDurationHours" min="1"
+                     class="w-full px-3 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-on-surface mb-1.5">عدد الأقسام</label>
+              <input type="number" [(ngModel)]="newCourse.numberOfSections" min="1"
+                     class="w-full px-3 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">صورة الغلاف (اختياري)</label>
+            <input type="file" (change)="onCourseImageSelected($event)" accept="image/*"
+                   class="w-full text-xs text-on-surface-variant file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary-container/30 file:text-primary hover:file:bg-primary-container cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeCourseModal()">إلغاء</app-button>
+          <app-button variant="primary" [loading]="savingCourse" (onClick)="saveCourse()">
+            {{ editingCourseId ? 'تحديث الدورة' : 'حفظ الدورة' }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Course Files Manager -->
+  @if (showFilesModal && activeFileCourse) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl text-right space-y-6 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">folder</span>
+            <h3 class="font-bold text-xl text-on-surface">إدارة ملفات ومرفقات: {{ activeFileCourse.title }}</h3>
+          </div>
+          <button (click)="closeFilesModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="p-4 rounded-2xl bg-surface border border-outline-variant space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">ربط المرفق بدرس محدد <span class="text-error">*</span></label>
+            <select
+              [(ngModel)]="selectedFileLessonId"
+              class="w-full px-3 py-2 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs font-semibold"
+            >
+              @for (l of activeCourseLessons; track l.id; let idx = $index) {
+                <option [value]="l.id">
+                  الدرس {{ idx + 1 }}: {{ l.title }}
+                </option>
+              } @empty {
+                <option value="">ملف عام للدورة</option>
+              }
+            </select>
+          </div>
+
+          <label class="block text-xs font-bold text-on-surface">اختيار الملف (PDF, ZIP, DOCX, إلخ):</label>
+          <div class="flex flex-col sm:flex-row items-center gap-3">
+            <input
+              type="file"
+              (change)="onFileSelected($event)"
+              class="w-full text-xs text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-on-primary hover:file:bg-primary/90 cursor-pointer"
+            />
+            <app-button
+              variant="primary"
+              icon="upload"
+              [disabled]="!selectedFileToUpload"
+              [loading]="uploadingFile"
+              (onClick)="uploadFile()"
+            >
+              رفع الملف
+            </app-button>
+          </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+          <h4 class="text-xs font-bold text-on-surface">الملفات المرفوعة حالياً:</h4>
+          @if (loadingFiles) {
+            <div class="py-6 text-center text-xs text-on-surface-variant">جاري تحميل الملفات...</div>
+          } @else if (courseFiles.length === 0) {
+            <p class="text-xs text-on-surface-variant text-center py-4">لا توجد ملفات مرفوعة لهذه الدورة حتى الآن.</p>
+          } @else {
+            @for (f of courseFiles; track f.id) {
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface border border-outline-variant/60">
+                <div class="flex items-center gap-2.5">
+                  <span class="material-symbols-outlined text-primary text-base">description</span>
+                  <span class="text-xs font-semibold text-on-surface truncate max-w-[280px]">{{ f.fileName }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="downloadFile(f, $event)"
+                    class="p-1 text-primary hover:bg-primary-container/20 rounded-lg cursor-pointer"
+                    title="تحميل الملف"
+                  >
+                    <span class="material-symbols-outlined text-base">download</span>
+                  </button>
+                  <button (click)="deleteFile(f.id)" class="p-1 text-error hover:bg-error-container/20 rounded-lg cursor-pointer" title="حذف">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="flex justify-end pt-3 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeFilesModal()">إغلاق</app-button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

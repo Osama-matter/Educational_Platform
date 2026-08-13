@@ -1,0 +1,68 @@
+<div class="max-w-4xl mx-auto px-4 py-10 text-right">
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل أسئلة الاختبار...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadQuiz()">إعادة المحاولة</app-button>
+    </div>
+  } @else {
+    <!-- Timer & Quiz Header -->
+    <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="font-headline-lg text-2xl font-bold text-on-surface mb-1">{{ quiz?.title || 'اختبار التقييم' }}</h1>
+        <p class="font-caption text-on-surface-variant text-xs">درجة النجاح المطلوبة: {{ quiz?.passingScorePercent || 70 }}%</p>
+      </div>
+
+      <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container/20 text-secondary font-mono font-bold text-lg">
+        <span class="material-symbols-outlined text-xl">timer</span>
+        <span>{{ formatTime(secondsLeft) }}</span>
+      </div>
+    </div>
+
+    <!-- Question Cards -->
+    <div class="space-y-6">
+      @for (q of questions; track q.id; let idx = $index) {
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+          <h3 class="font-headline-md text-lg font-bold text-on-surface mb-4">
+            السؤال {{ idx + 1 }}: {{ q.questionText }}
+          </h3>
+
+          <div class="space-y-3">
+            @for (opt of q.options; track opt.id) {
+              <label
+                class="flex items-center gap-3 p-4 rounded-xl border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-all"
+                [ngClass]="answers.get(q.id) === opt.id ? 'bg-primary-container/20 border-primary font-semibold' : ''"
+              >
+                <input
+                  type="radio"
+                  [name]="'q_' + q.id"
+                  [value]="opt.id"
+                  [checked]="answers.get(q.id) === opt.id"
+                  (change)="selectOption(q.id, opt.id)"
+                  class="text-primary focus:ring-primary h-4 w-4"
+                />
+                <span class="font-body-md text-on-surface text-sm">{{ opt.optionText }}</span>
+              </label>
+            }
+          </div>
+        </div>
+      } @empty {
+        <div class="p-8 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+          <p class="text-on-surface-variant text-sm">لا تتوفر أسئلة لهذا الاختبار حالياً.</p>
+        </div>
+      }
+    </div>
+
+    <div class="mt-8 flex justify-end">
+      <app-button variant="primary" icon="send" [loading]="submitting" (onClick)="submitQuiz()">
+        تسليم الاختبار والإجابات
+      </app-button>
+    </div>
+  }
+</div>
+

@@ -1,0 +1,114 @@
+<div class="max-w-7xl mx-auto text-right space-y-8 pb-12">
+  <div>
+    <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-1">شهاداتي وإنجازاتي</h1>
+    <p class="font-body-md text-on-surface-variant text-sm">عرض وتحميل كافة الشهادات المعتمدة التي حصلت عليها بعد إتمام الدورات</p>
+  </div>
+
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل شهاداتك المعتمدة...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else if (certificates.length === 0) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-3xl border border-outline-variant space-y-4">
+      <span class="material-symbols-outlined text-5xl text-on-surface-variant">workspace_premium</span>
+      <h3 class="font-bold text-xl text-on-surface">لا توجد شهادات صادرة لك حتى الآن</h3>
+      <p class="text-xs text-on-surface-variant max-w-md mx-auto">
+        أكمل مساراتك التعليمية وشاهد كافة الدروس للحصول على شهادات معتمدة وموثقة برمز تحقق رسمي.
+      </p>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (item of certificates; track item.id) {
+        <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 shadow-sm space-y-4 flex flex-col justify-between group hover:border-primary/50 transition-all">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="w-10 h-10 rounded-xl bg-primary-container/30 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">verified</span>
+              </span>
+              <app-badge [text]="item.isRevoked ? 'ملغاة' : 'معتمدة'" [variant]="item.isRevoked ? 'error' : 'primary'" />
+            </div>
+
+            <div>
+              <h3 class="font-headline-md text-lg font-bold text-on-surface">{{ item.courseTitle }}</h3>
+              <p class="font-mono text-xs text-primary font-bold mt-1">كود: {{ item.certificateNumber }}</p>
+            </div>
+
+            <p class="text-xs text-on-surface-variant font-mono">تاريخ الإصدار: {{ item.issuedAt | date:'mediumDate' }}</p>
+          </div>
+
+          <div class="pt-3 border-t border-outline-variant/60 flex items-center gap-2">
+            <app-button variant="outline" icon="visibility" (onClick)="viewDetails(item.id)">
+              عرض
+            </app-button>
+            <app-button
+              variant="primary"
+              icon="download"
+              [loading]="downloadingId === item.id"
+              (onClick)="download(item.id, item.certificateNumber)"
+            >
+              تحميل PDF
+            </app-button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Details Modal -->
+  @if (showDetailsModal && selectedDetails) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">verified</span>
+            <h3 class="font-bold text-xl text-on-surface">شهادة إتمام معتمدة</h3>
+          </div>
+          <button (click)="closeDetailsModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div class="flex justify-between py-1 border-b border-outline-variant/40">
+            <span class="text-on-surface-variant">اسم الطالب:</span>
+            <strong class="text-on-surface">{{ selectedDetails.userFullName }}</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-outline-variant/40">
+            <span class="text-on-surface-variant">الدورة التدريبية:</span>
+            <strong class="text-on-surface">{{ selectedDetails.courseTitle }}</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-outline-variant/40">
+            <span class="text-on-surface-variant">رقم الشهادة:</span>
+            <strong class="text-primary font-mono">{{ selectedDetails.certificateNumber }}</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-outline-variant/40">
+            <span class="text-on-surface-variant">رمز التحقق الأمني:</span>
+            <strong class="text-on-surface font-mono">{{ selectedDetails.verificationCode }}</strong>
+          </div>
+          <div class="flex justify-between py-1 border-b border-outline-variant/40">
+            <span class="text-on-surface-variant">المحاضر المعتمد:</span>
+            <span class="text-on-surface">{{ selectedDetails.instructorName || 'محاضر المنصة' }}</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-on-surface-variant">تاريخ المنح:</span>
+            <span class="font-mono text-xs">{{ selectedDetails.issuedAt | date:'mediumDate' }}</span>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeDetailsModal()">إغلاق</app-button>
+          <app-button variant="primary" icon="download" (onClick)="download(selectedDetails.id || '', selectedDetails.certificateNumber)">
+            تحميل الشهادة
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

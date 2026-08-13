@@ -1,0 +1,91 @@
+<div class="max-w-4xl mx-auto px-4 py-12 text-right">
+  <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-2">إتمام الطلب والدفع</h1>
+  <p class="font-body-md text-on-surface-variant text-sm mb-8">اختر طريقة الدفع المناسبة لإكمال عملية التسجيل</p>
+
+  @if (loadingCourse) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل تفاصيل الدورة والطلب...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadCourse()">إعادة المحاولة</app-button>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Order Summary Card (1 col) -->
+      <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm h-fit">
+        <h3 class="font-headline-md text-lg font-bold text-on-surface mb-4 border-b border-outline-variant pb-3">ملخص الدورة</h3>
+        <h4 class="font-label-md text-on-surface font-semibold text-base mb-2">{{ course?.title }}</h4>
+        <p class="font-caption text-on-surface-variant text-xs mb-4">{{ course?.estimatedDurationHours }} ساعة تعليمية متكاملة</p>
+
+        <div class="space-y-2 border-t border-outline-variant pt-4 text-sm">
+          <div class="flex justify-between">
+            <span class="text-on-surface-variant">السعر الاصلي:</span>
+            <span class="font-semibold">{{ course?.price }} ج.م</span>
+          </div>
+          <div class="flex justify-between text-primary font-bold text-base border-t border-outline-variant/60 pt-2">
+            <span>الإجمالي:</span>
+            <span>{{ course?.price }} ج.م</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method Options & Customer Details (2 cols) -->
+      <div class="md:col-span-2 space-y-6">
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm space-y-4">
+          <h3 class="font-headline-md text-lg font-bold text-on-surface mb-2">معلومات المشتري</h3>
+
+          <div>
+            <label class="block text-sm font-label-md text-on-surface mb-1">الاسم بالكامل</label>
+            <input type="text" [(ngModel)]="customerName" placeholder="أدخل اسمك بالكامل" class="w-full px-4 py-2.5 rounded-xl border border-outline bg-surface text-on-surface" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-label-md text-on-surface mb-1">البريد الإلكتروني</label>
+              <input type="email" [(ngModel)]="customerEmail" class="w-full px-4 py-2.5 rounded-xl border border-outline bg-surface text-on-surface text-left" />
+            </div>
+            <div>
+              <label class="block text-sm font-label-md text-on-surface mb-1">رقم الهاتف</label>
+              <input type="tel" [(ngModel)]="customerPhone" placeholder="01012345678" class="w-full px-4 py-2.5 rounded-xl border border-outline bg-surface text-on-surface text-left" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Gateways -->
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+          <h3 class="font-headline-md text-lg font-bold text-on-surface mb-4">طريقة الدفع</h3>
+
+          @if (paymentErrorMessage) {
+            <div class="p-3 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs mb-4">
+              {{ paymentErrorMessage }}
+            </div>
+          }
+
+          <div class="space-y-3">
+            <label class="flex items-center justify-between p-4 rounded-xl border border-primary bg-primary-container/10 cursor-pointer">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="pay_method" value="fawaterak" checked class="text-primary" />
+                <div>
+                  <span class="font-label-md text-on-surface font-semibold block text-sm">بوابة فواتيرك (Fawaterak)</span>
+                  <span class="font-caption text-on-surface-variant text-xs">بطاقات بنكية، فوري، فودافون كاش</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-primary text-2xl">credit_card</span>
+            </label>
+          </div>
+
+          <div class="mt-6">
+            <app-button variant="primary" icon="lock" [loading]="loadingPayment" class="w-full" (onClick)="payNow()">
+              الانتقال للدفع الآمن ({{ course?.price }} ج.م)
+            </app-button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+

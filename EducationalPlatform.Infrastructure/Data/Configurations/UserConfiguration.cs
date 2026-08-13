@@ -17,6 +17,10 @@ namespace EducationalPlatform.Infrastructure.Data.Configurations
 
             builder.Property(e => e.Role)
                    .HasConversion<string>();
+
+            builder.HasMany(u => u.RefreshTokens)
+                   .WithOne(rt => rt.User)
+                   .HasForeignKey(rt => rt.UserId);
         }
     }
 }

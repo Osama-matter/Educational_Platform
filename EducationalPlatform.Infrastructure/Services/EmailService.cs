@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.Mail;
+using EducationalPlatform.Application.DTOs.Mail;
 using EducationalPlatform.Application.Interfaces.Services;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
@@ -217,30 +217,44 @@ namespace EducationalPlatform.Infrastructure.Services
 
         private async Task SendEmailAsync(string to, string subject, string body, MimePart attachment = null)
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.From));
-            message.To.Add(new MailboxAddress(to, to));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
-
-            var logoPath = Path.Combine(_webHostEnvironment.WebRootPath, "certification", "Logo", "lOGO.png");
-            var logoImage = bodyBuilder.LinkedResources.Add(logoPath);
-            logoImage.ContentId = "logo";
-
-            if (attachment != null)
+            try
             {
-                bodyBuilder.Attachments.Add(attachment);
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(_emailSettings.FromName ?? "EduPlatform", _emailSettings.From ?? "no-reply@eduplatform.com"));
+                message.To.Add(new MailboxAddress(to, to));
+                message.Subject = subject;
+
+                var bodyBuilder = new BodyBuilder { HtmlBody = body };
+
+                var logoPath = Path.Combine(_webHostEnvironment.WebRootPath ?? "", "certification", "Logo", "lOGO.png");
+                if (File.Exists(logoPath))
+                {
+                    var logoImage = bodyBuilder.LinkedResources.Add(logoPath);
+                    logoImage.ContentId = "logo";
+                }
+
+                if (attachment != null)
+                {
+                    bodyBuilder.Attachments.Add(attachment);
+                }
+                message.Body = bodyBuilder.ToMessageBody();
+
+                if (!string.IsNullOrEmpty(_emailSettings.Host))
+                {
+                    using (var client = new SmtpClient())
+                    {
+                        await client.ConnectAsync(_emailSettings.Host, _emailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+                        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
+                        await client.SendAsync(message);
+                        await client.DisconnectAsync(true);
+                    }
+                }
             }
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using (var client = new SmtpClient())
+            catch (System.Exception ex)
             {
-                await client.ConnectAsync(_emailSettings.Host, _emailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
-                await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
+                System.Console.WriteLine($"[EmailService Warning] Failed to send email to {to}: {ex.Message}");
             }
         }
+
     }
 }

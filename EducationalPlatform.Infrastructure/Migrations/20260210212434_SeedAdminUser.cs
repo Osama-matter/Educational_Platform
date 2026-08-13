@@ -31,8 +31,8 @@ namespace EducationalPlatform.Infrastructure.Migrations
             migrationBuilder.Sql($@"
                 IF NOT EXISTS (SELECT 1 FROM AspNetUsers WHERE NormalizedEmail = 'OSAMAMATTER390@GMAIL.COM')
                 BEGIN
-                    INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
-                    VALUES ('{adminUserId}', 'Osama Matter', 'OSAMA MATTER', 'osamamatter390@gmail.com', 'OSAMAMATTER390@GMAIL.COM', 1, '{passwordHash}', '{securityStampUser}', '{concurrencyStampUser}', 0, 0, 1, 0);
+                    INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount, FirstName, LastName, Role, CreatedAt)
+                    VALUES ('{adminUserId}', 'Osama Matter', 'OSAMA MATTER', 'osamamatter390@gmail.com', 'OSAMAMATTER390@GMAIL.COM', 1, '{passwordHash}', '{securityStampUser}', '{concurrencyStampUser}', 0, 0, 1, 0, 'Osama', 'Matter', 0, GETUTCDATE());
 
                     -- Assign User to Role only if user was just created
                     DECLARE @RoleId nvarchar(450);

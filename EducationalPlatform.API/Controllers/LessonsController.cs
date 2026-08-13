@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.Lessons;
+using EducationalPlatform.Application.DTOs.Lessons;
 using EducationalPlatform.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -55,6 +55,39 @@ namespace EducationalPlatform.API.Controllers
         {
             await _lessonService.DeleteAsync(lessonId);
             return NoContent();
+        }
+
+        [HttpGet("{lessonId}/secure-stream")]
+        [Authorize]
+        public async Task<IActionResult> GetSecureStreamToken(Guid lessonId)
+        {
+            var lesson = await _lessonService.GetByIdAsync(lessonId);
+            if (lesson == null) return NotFound("Lesson not found.");
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                         ?? User.FindFirst("sub")?.Value
+                         ?? "anonymous";
+
+            var expiresAt = DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds();
+            var payloadToSign = $"{userId}:{lessonId}:{expiresAt}";
+
+            using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes("EducationalPlatform_SecureVideoSecretKey_2026_!#"));
+            var hashBytes = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payloadToSign));
+            var token = Convert.ToHexString(hashBytes).ToLowerInvariant();
+
+            return Ok(new
+            {
+                LessonId = lessonId,
+                ExpiresAt = expiresAt,
+                HashToken = token,
+                SecurePlaybackUrl = lesson.VideoUrl,
+                WatermarkInfo = new
+                {
+                    UserId = userId,
+                    UserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? User.Identity?.Name ?? "student@platform",
+                    Timestamp = DateTime.UtcNow
+                }
+            });
         }
     }
 }

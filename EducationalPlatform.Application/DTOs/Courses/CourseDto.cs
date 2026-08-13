@@ -40,6 +40,7 @@ namespace EducationalPlatform.Application.DTOs.Courses
             UpdatedAt = course.UpdatedAt;
             Image_URl = course.Image_URl;
             Price = course.Price;
+            NumberOfSections = course.NumberOfSections;
         }
     }
 }

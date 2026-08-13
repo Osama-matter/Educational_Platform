@@ -1,4 +1,4 @@
-﻿using Azure.Core;
+using Azure.Core;
 using EducationalPlatform.Application.DTOs.Courses;
 using EducationalPlatform.Application.DTOs.Lessons;
 using EducationalPlatform.Application.DTOs.Quiz;
@@ -49,11 +49,14 @@ namespace EducationalPlatform.Infrastructure.Services
             {
                 return false;
             }
-            // Delete associated image
-            bool isDeleted = await _imageService.DeleteCourseImageAsync(course.Image_URl);
-            if (!isDeleted)
+            // Delete associated image if exists
+            try
             {
-                throw new Exception("Failed to delete course image");
+                await _imageService.DeleteCourseImageAsync(course.Image_URl);
+            }
+            catch
+            {
+                // Ignore image file deletion errors
             }
 
             await _courseRepository.DeleteAsync(id);

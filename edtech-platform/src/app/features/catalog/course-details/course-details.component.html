@@ -1,0 +1,295 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-right space-y-10">
+  @if (loading) {
+    <div class="h-96 bg-surface-container-high rounded-2xl animate-pulse"></div>
+  } @else if (errorMessage) {
+    <div class="p-12 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-5xl">cloud_off</span>
+      <p class="font-bold text-lg">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadCourse()">إعادة المحاولة</app-button>
+    </div>
+  } @else if (course) {
+    <!-- Header Banner -->
+    <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+      <div class="lg:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <app-badge [text]="course.price > 0 ? (course.price + ' ج.م') : 'مجاني'" [variant]="course.price > 0 ? 'secondary' : 'primary'" />
+          <span class="text-xs text-on-surface-variant font-label-md">{{ course.numberOfSections }} أقسام تعليمية</span>
+        </div>
+
+        <h1 class="font-headline-lg text-3xl sm:text-4xl font-bold text-on-surface mb-4 leading-tight">
+          {{ course.title }}
+        </h1>
+
+        <p class="font-body-lg text-on-surface-variant text-base leading-relaxed mb-6">
+          {{ course.description }}
+        </p>
+
+        <div class="flex flex-wrap items-center gap-6 text-sm text-on-surface-variant mb-6">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">person</span>
+            <span>المحاضر: <strong class="text-on-surface">{{ course.instructorName || 'محاضر المنصة' }}</strong></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">schedule</span>
+            <span>المدة الإجمالية: <strong class="text-on-surface">{{ course.estimatedDurationHours }} ساعة</strong></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500">star</span>
+            <span>التقييم: <strong class="text-on-surface">{{ course.rating || 4.9 }} ({{ reviews.length }} تقييم)</strong></span>
+          </div>
+        </div>
+
+        @if (enrollErrorMessage) {
+          <div class="p-3 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs mb-4">
+            {{ enrollErrorMessage }}
+          </div>
+        }
+
+        <div class="flex gap-4">
+          @if (isEnrolled) {
+            <a [routerLink]="['/learning', course.id]">
+              <app-button variant="primary" icon="play_circle">الدخول إلى الدورة ومتابعة التعلم</app-button>
+            </a>
+          } @else if (course.price > 0) {
+            <a [routerLink]="['/checkout', course.id]">
+              <app-button variant="primary" icon="shopping_cart">شراء الدورة الآن ({{ course.price }} ج.م)</app-button>
+            </a>
+          } @else {
+            <app-button variant="primary" icon="check_circle" [loading]="enrolling" (onClick)="enrollFree()">
+              التسجيل المجاني في الدورة
+            </app-button>
+          }
+        </div>
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border border-outline-variant shadow-md h-64 bg-gradient-to-tr from-primary/90 via-primary to-secondary/80 flex items-center justify-center relative">
+        @if (course.imageUrl && !imageError) {
+          <img [src]="course.imageUrl" [alt]="course.title" (error)="onImageError()" class="w-full h-64 object-cover" />
+        } @else {
+          <div class="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary to-secondary/90 flex flex-col items-center justify-center p-6 text-center">
+            <span class="material-symbols-outlined text-6xl text-on-primary/90 mb-2 animate-pulse">menu_book</span>
+            <span class="font-headline-md text-on-primary text-base font-bold truncate max-w-full px-2 opacity-90">{{ course.title }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Grid: Lessons Syllabus & Course Resources -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Lessons Syllabus List (2 Cols) -->
+      <div class="lg:col-span-2 bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-headline-lg text-2xl font-bold text-on-surface">منهاج وقائمة دروس الدورة</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5">اختر أي درس لبدء المشاهدة ومتابعة التعلم</p>
+          </div>
+          <span class="text-xs text-on-surface-variant font-mono bg-surface-container px-3 py-1.5 rounded-xl font-bold">{{ lessons.length }} دروس</span>
+        </div>
+
+        <div class="space-y-3">
+          @for (lesson of lessons; track lesson.id; let idx = $index) {
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-surface border border-outline-variant/60 hover:border-primary/50 hover:bg-surface-container-low transition-all">
+              <div class="flex items-center gap-4">
+                <div class="w-9 h-9 rounded-xl bg-primary-container/20 text-primary flex items-center justify-center font-bold text-sm">
+                  {{ lesson.orderIndex ?? lesson.order ?? (idx + 1) }}
+                </div>
+                <div>
+                  <h4 class="font-label-md text-on-surface text-base font-semibold">{{ lesson.title }}</h4>
+                  <p class="font-caption text-on-surface-variant text-xs mt-0.5">{{ lesson.durationMinutes || 15 }} دقيقة</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                @if (lesson.isFreePreview) {
+                  <span class="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary text-xs font-semibold">معاينة مجانية</span>
+                }
+                @if (isEnrolled) {
+                  <a
+                    [routerLink]="['/learning', course.id]"
+                    [queryParams]="{ lessonId: lesson.id }"
+                    class="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1.5 shadow-xs"
+                  >
+                    <span class="material-symbols-outlined text-base">play_arrow</span>
+                    <span>بدء الدرس</span>
+                  </a>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="text-center py-8 text-on-surface-variant font-body-md">
+              سيتم إضافة دروس هذه الدورة قريباً.
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Course Files & Attachments (1 Col) -->
+      <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-4">
+        <div class="flex items-center gap-2 text-on-surface font-bold text-xl">
+          <span class="material-symbols-outlined text-primary">folder_open</span>
+          <h3>ملفات ومرفقات الدورة</h3>
+        </div>
+        <p class="text-xs text-on-surface-variant">المراجع والملفات الملحقة القابلة للتحميل</p>
+
+        <div class="space-y-2.5 pt-2">
+          @for (file of courseFiles; track file.id) {
+            <button
+              type="button"
+              (click)="downloadFile(file, $event)"
+              class="w-full flex items-center justify-between p-3 rounded-xl bg-surface border border-outline-variant/60 hover:bg-surface-container-low transition-all group cursor-pointer text-right"
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">description</span>
+                <span class="text-xs font-semibold text-on-surface truncate max-w-[150px]">{{ file.fileName }}</span>
+              </div>
+              <span class="material-symbols-outlined text-sm text-primary">download</span>
+            </button>
+          } @empty {
+            <p class="text-xs text-on-surface-variant text-center py-6">لا توجد ملفات مرفقة حالياً</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Reviews and Ratings Section -->
+    <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-8">
+      <div class="flex items-center justify-between border-b border-outline-variant pb-4">
+        <div>
+          <h2 class="font-headline-lg text-2xl font-bold text-on-surface">آراء وتقييمات الطلاب</h2>
+          <p class="text-xs text-on-surface-variant mt-1">تجارب الطلاب المشتركين في هذه الدورة</p>
+        </div>
+      </div>
+
+      <!-- Add Review Form -->
+      <div class="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4">
+        <h3 class="font-bold text-base text-on-surface">أضف تقييمك للدورة</h3>
+
+        @if (reviewErrorMessage) {
+          <div class="p-3 bg-error-container/20 border border-error/30 text-error rounded-xl text-xs font-semibold">
+            {{ reviewErrorMessage }}
+          </div>
+        }
+        @if (reviewSuccessMessage) {
+          <div class="p-3 bg-primary-container/20 border border-primary/30 text-primary rounded-xl text-xs font-semibold">
+            {{ reviewSuccessMessage }}
+          </div>
+        }
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-on-surface">التقييم بالنجوم:</span>
+          <div class="flex gap-1">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+              <button
+                type="button"
+                (click)="newReview.rate = star"
+                class="text-2xl transition-transform hover:scale-125 cursor-pointer"
+                [class.text-amber-400]="star <= newReview.rate"
+                [class.text-surface-variant]="star > newReview.rate"
+              >
+                ★
+              </button>
+            }
+          </div>
+        </div>
+
+        <textarea
+          [(ngModel)]="newReview.comment"
+          rows="3"
+          placeholder="شاركنا رأيك وتجربتك في محتوى الدورة والشرح..."
+          class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container text-on-surface focus:outline-none focus:border-primary text-sm"
+        ></textarea>
+
+        <div class="flex justify-end">
+          <app-button variant="primary" icon="send" [loading]="submittingReview" (onClick)="submitReview()">
+            إرسال التقييم
+          </app-button>
+        </div>
+      </div>
+
+      <!-- Reviews List -->
+      <div class="space-y-4">
+        @for (rev of reviews; track rev.id) {
+          <div class="p-5 rounded-2xl bg-surface border border-outline-variant/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-container font-bold flex items-center justify-center text-sm">
+                  {{ (rev.userFullName || 'ط').charAt(0) }}
+                </div>
+                <div>
+                  <h4 class="font-bold text-sm text-on-surface">{{ rev.userFullName || 'طالب مسجل' }}</h4>
+                  <span class="text-[11px] text-on-surface-variant font-mono">{{ rev.createdAt | date:'mediumDate' }}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div class="text-amber-400 text-sm">
+                  @for (s of [1, 2, 3, 4, 5]; track s) {
+                    <span>{{ s <= rev.rate ? '★' : '☆' }}</span>
+                  }
+                </div>
+
+                @if (canManageReviews()) {
+                  <button (click)="deleteReview(rev.id)" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors" title="حذف">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <p class="font-body-md text-on-surface text-sm leading-relaxed">{{ rev.comment }}</p>
+
+            <!-- Instructor Reply Display -->
+            @if (rev.instructorReply) {
+              <div class="mr-6 p-4 rounded-xl bg-primary-container/10 border-r-4 border-primary space-y-1">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-primary">
+                  <span class="material-symbols-outlined text-sm">verified</span>
+                  <span>رد المحاضر / إدارة المنصة:</span>
+                </div>
+                <p class="text-xs text-on-surface leading-relaxed">{{ rev.instructorReply }}</p>
+              </div>
+            } @else if (canManageReviews() && replyingReviewId !== rev.id) {
+              <div class="flex justify-end">
+                <button
+                  (click)="openReplyForm(rev.id)"
+                  class="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-sm">reply</span>
+                  <span>الرد على هذا التقييم</span>
+                </button>
+              </div>
+            }
+
+            <!-- Reply Form (For Instructor/Admin) -->
+            @if (replyingReviewId === rev.id) {
+              <div class="mr-6 p-4 rounded-xl bg-surface-container space-y-3 border border-outline-variant">
+                <label class="block text-xs font-bold text-on-surface">كتابة رد المحاضر:</label>
+                <textarea
+                  [(ngModel)]="replyContent"
+                  rows="2"
+                  placeholder="أدخل ردك التوضيحي للطالب..."
+                  class="w-full px-3 py-2 rounded-xl border border-outline-variant bg-surface text-xs focus:outline-none focus:border-primary"
+                ></textarea>
+                <div class="flex items-center justify-end gap-2">
+                  <button (click)="cancelReply()" class="px-3 py-1 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high">
+                    إلغاء
+                  </button>
+                  <button
+                    (click)="submitReply(rev.id)"
+                    [disabled]="submittingReply"
+                    class="px-4 py-1 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 transition-all"
+                  >
+                    نشر الرد
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @empty {
+          <div class="text-center py-8 text-on-surface-variant text-sm font-body-md">
+            لا توجد تقييمات مسجلة لهذه الدورة حتى الآن. كن أول من يقيّمها!
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

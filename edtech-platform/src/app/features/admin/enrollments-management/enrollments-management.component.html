@@ -1,0 +1,128 @@
+<div class="max-w-7xl mx-auto text-right space-y-8 pb-12">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-1">إدارة التسجيلات والطلاب</h1>
+      <p class="font-body-md text-on-surface-variant text-sm">عرض وتتبع وتعديل كافة تسجيلات واشتراكات الطلاب في الدورات</p>
+    </div>
+
+    <app-button variant="primary" icon="person_add" (onClick)="openEnrollModal()">
+      تسجيل طالب يدوياً
+    </app-button>
+  </div>
+
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل سجلات التسجيلات...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else {
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+      <table class="w-full text-right border-collapse">
+        <thead>
+          <tr class="bg-surface-container border-b border-outline-variant text-on-surface-variant font-label-md text-sm">
+            <th class="p-4">معرف الطالب</th>
+            <th class="p-4">الدورة التعليمية</th>
+            <th class="p-4">تاريخ التسجيل</th>
+            <th class="p-4">نسبة الإنجاز</th>
+            <th class="p-4">الحالة</th>
+            <th class="p-4 text-center">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/60 font-body-md text-sm">
+          @for (item of enrollments; track item.id) {
+            <tr class="hover:bg-surface-container-low transition-colors">
+              <td class="p-4 font-semibold text-on-surface font-mono text-xs">{{ item.userId }}</td>
+              <td class="p-4 font-bold">{{ item.courseTitle }}</td>
+              <td class="p-4 font-mono text-xs">{{ item.enrolledAt | date:'mediumDate' }}</td>
+              <td class="p-4 font-mono font-semibold text-primary">{{ item.progressPercent }}%</td>
+              <td class="p-4">
+                <button
+                  type="button"
+                  (click)="toggleEnrollmentStatus(item)"
+                  class="cursor-pointer"
+                  title="انقر لتغيير حالة التفعيل"
+                >
+                  <app-badge [text]="item.isActive ? 'نشط' : 'معطل'" [variant]="item.isActive ? 'primary' : 'error'" />
+                </button>
+              </td>
+              <td class="p-4 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button
+                    (click)="toggleEnrollmentStatus(item)"
+                    class="p-1.5 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors"
+                    [title]="item.isActive ? 'تعطيل التسجيل' : 'تفعيل التسجيل'"
+                  >
+                    <span class="material-symbols-outlined text-base">{{ item.isActive ? 'block' : 'check_circle' }}</span>
+                  </button>
+                  <button
+                    (click)="deleteEnrollment(item.id)"
+                    class="p-1.5 text-error hover:bg-error-container/20 rounded-lg transition-colors"
+                    title="حذف التسجيل"
+                  >
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-8 text-on-surface-variant">لا توجد تسجيلات مسجلة حتى الآن</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Manual Enroll Modal -->
+  @if (showEnrollModal) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">person_add</span>
+            <h3 class="font-bold text-xl text-on-surface">تسجيل طالب في دورة يدوياً</h3>
+          </div>
+          <button (click)="closeEnrollModal()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        @if (enrollModalErrorMessage) {
+          <div class="p-3.5 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm font-semibold">
+            {{ enrollModalErrorMessage }}
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">معرف الطالب (User ID / Student ID) <span class="text-error">*</span></label>
+            <input type="text" [(ngModel)]="manualStudentId" placeholder="أدخل معرف الطالب أو UUID..."
+                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface mb-1.5">الدورة المستهدفة <span class="text-error">*</span></label>
+            <select [(ngModel)]="manualCourseId"
+                    class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm font-medium">
+              @for (c of courses; track c.id) {
+                <option [value]="c.id">{{ c.title }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
+          <app-button variant="outline" (onClick)="closeEnrollModal()">إلغاء</app-button>
+          <app-button variant="primary" [loading]="savingEnroll" (onClick)="createManualEnrollment()">تأكيد التسجيل</app-button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

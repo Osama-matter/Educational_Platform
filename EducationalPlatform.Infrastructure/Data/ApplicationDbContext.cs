@@ -1,4 +1,5 @@
-﻿using EducationalPlatform.Domain.Entities;
+using EducationalPlatform.Domain.Entities;
+using EducationalPlatform.Domain.Entities.Auth;
 using EducationalPlatform.Domain.Entities.Course;
 using EducationalPlatform.Domain.Entities.Course_File;
 using EducationalPlatform.Domain.Entities.Leeson;
@@ -45,6 +46,9 @@ namespace EducationalPlatform.Infrastructure.Data
 
         public DbSet<ForumSubscriptions> ForumSubscription { get; set; }
 
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -56,3 +60,4 @@ namespace EducationalPlatform.Infrastructure.Data
 }
 
 
+          

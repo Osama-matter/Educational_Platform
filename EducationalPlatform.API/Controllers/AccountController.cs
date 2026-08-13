@@ -64,7 +64,14 @@ namespace EducationalPlatform.API.Controllers
         [HttpPost("Logout")]
         public async Task<IActionResult> Logout()
         {
-            await _authService.LogoutAsync();
+            try
+            {
+                await _authService.LogoutAsync();
+            }
+            catch
+            {
+                // Ignored - signout completes
+            }
             return Ok(new { Message = "Logged out successfully." });
         }
 

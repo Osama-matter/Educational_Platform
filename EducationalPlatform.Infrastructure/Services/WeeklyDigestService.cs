@@ -30,7 +30,7 @@ namespace EducationalPlatform.Infrastructure.Services
                 var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
                 // In a real application, you would fetch users from the database.
                 // For this example, we'll just send a test email.
-                emailService.SendWeeklyDigestAsync("test@example.com", "Test User", "This is your weekly digest.").Wait();
+            
             }
         }
 

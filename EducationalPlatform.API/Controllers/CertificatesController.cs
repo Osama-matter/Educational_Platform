@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.Certificate;
+using EducationalPlatform.Application.DTOs.Certificate;
 using EducationalPlatform.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

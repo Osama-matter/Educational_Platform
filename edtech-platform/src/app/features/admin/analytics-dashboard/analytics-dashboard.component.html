@@ -1,0 +1,75 @@
+<div class="max-w-7xl mx-auto text-right space-y-8">
+  <div>
+    <h1 class="font-headline-lg text-3xl font-bold text-on-surface mb-1">اتجاهات التسجيل وأحدث النشاطات</h1>
+    <p class="font-body-md text-on-surface-variant text-sm">مؤشرات أداء المنصة والتحليلات الحية من قاعدة البيانات</p>
+  </div>
+
+  @if (loading) {
+    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل إحصائيات المنصة الحية...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
+  } @else if (stats) {
+    <!-- KPI Summary Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+        <span class="text-xs text-on-surface-variant font-label-md block mb-1">إجمالي الطلاب</span>
+        <span class="font-bold text-3xl text-primary block mb-2">{{ stats.totalStudents | number }}</span>
+        <span class="text-xs text-primary font-semibold flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">trending_up</span> طلاب مسجلين بالمنصة
+        </span>
+      </div>
+
+      <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+        <span class="text-xs text-on-surface-variant font-label-md block mb-1">الدورات النشطة</span>
+        <span class="font-bold text-3xl text-secondary block mb-2">{{ stats.totalCourses | number }}</span>
+        <span class="text-xs text-secondary font-semibold">دورات مهدية للطلاب</span>
+      </div>
+
+      <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+        <span class="text-xs text-on-surface-variant font-label-md block mb-1">الشهادات الصادرة</span>
+        <span class="font-bold text-3xl text-tertiary block mb-2">{{ stats.totalCertificates | number }}</span>
+        <span class="text-xs text-tertiary font-semibold">شهادات معتمدة صادرة</span>
+      </div>
+
+      <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+        <span class="text-xs text-on-surface-variant font-label-md block mb-1">إجمالي الإيرادات</span>
+        <span class="font-bold text-3xl text-on-surface block mb-2">{{ stats.totalRevenue | number:'1.0-2' }} ج.م</span>
+        <span class="text-xs text-primary font-semibold">إيراد التسجيلات الحقيقي</span>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
+      <h3 class="font-headline-md text-lg font-bold text-on-surface mb-4">أحدث النشاطات الحية على المنصة</h3>
+
+      <div class="space-y-4">
+        @for (act of stats.recentActivities; track act.id) {
+          <div class="flex items-center justify-between p-4 rounded-xl bg-surface border border-outline-variant/60">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-primary">
+                {{ act.type === 'certificate' ? 'workspace_premium' : 'person_add' }}
+              </span>
+              <div>
+                <p class="font-label-md text-on-surface text-sm font-semibold">{{ act.title }}</p>
+                <span class="font-caption text-on-surface-variant text-xs">{{ act.timestamp | date:'medium' }}</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
+                  [ngClass]="act.type === 'certificate' ? 'bg-secondary-container/20 text-secondary' : 'bg-primary-container/20 text-primary'">
+              {{ act.details }}
+            </span>
+          </div>
+        } @empty {
+          <p class="text-center text-on-surface-variant py-6 text-sm">لا توجد نشاطات مسجلة حديثاً</p>
+        }
+      </div>
+    </div>
+  }
+</div>

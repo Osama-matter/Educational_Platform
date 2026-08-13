@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs;
+using EducationalPlatform.Application.DTOs;
 using EducationalPlatform.Application.Interfaces;
 using EducationalPlatform.Domain;
 using EducationalPlatform.Infrastructure.Services;
@@ -150,7 +150,7 @@ namespace EducationalPlatform.Infrastructure.Services
         {
             var enrollments = await _enrollmentRepository.GetAllAsync();
             if (enrollments == null || !enrollments.Any())
-                throw new NotFoundException("No enrollments found.");
+                return Enumerable.Empty<EnrollmentDto>();
 
             return enrollments.Select(e => new EnrollmentDto(e));
         }
