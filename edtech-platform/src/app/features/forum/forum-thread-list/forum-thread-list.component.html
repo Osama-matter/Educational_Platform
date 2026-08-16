@@ -1,100 +1,451 @@
-<div class="max-w-6xl mx-auto px-4 py-10 text-right">
-  <div class="flex items-center justify-between mb-8">
-    <div>
-      <h1 class="font-headline-lg text-3xl font-bold text-on-surface">منتدى المناقشات والاستفسارات</h1>
-      <p class="font-body-md text-on-surface-variant text-sm mt-1">تواصل مع زملائك والمحاضرين واطرح تساؤلاتك</p>
-    </div>
+<div class="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 text-right space-y-6">
+  
+  @if (selectedThread) {
+    <!-- Thread Details & Replies View -->
+    <div class="space-y-6 animate-in fade-in duration-200">
+      
+      <!-- Back Navigation & Actions Bar -->
+      <div class="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          (click)="closeThreadDetail()"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs sm:text-sm font-bold transition-all cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-base">arrow_forward</span>
+          <span>العودة إلى قائمة المناقشات</span>
+        </button>
 
-    <app-button variant="primary" icon="add_comment" (onClick)="openNewModal()">
-      إضافة موضوع جديد
-    </app-button>
-  </div>
+        @if (canModifyThread(selectedThread)) {
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="openEditModal(selectedThread)"
+              class="px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-sm">edit</span>
+              <span>تعديل</span>
+            </button>
+            <button
+              type="button"
+              (click)="deleteThread(selectedThread)"
+              class="px-3 py-1.5 rounded-xl bg-error/10 hover:bg-error/20 text-error text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-sm">delete</span>
+              <span>حذف</span>
+            </button>
+          </div>
+        }
+      </div>
 
-  @if (loading) {
-    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
-      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
-      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل مناقشات المنتدى...</p>
-    </div>
-  } @else if (errorMessage) {
-    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
-      <span class="material-symbols-outlined text-4xl">cloud_off</span>
-      <p class="font-bold text-base">{{ errorMessage }}</p>
-      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+      <!-- Main Question Card -->
+      <div class="bg-surface-container-lowest p-5 sm:p-7 rounded-3xl border border-outline-variant/80 shadow-xs space-y-4">
+        <div class="flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/50">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+              {{ (selectedThread.authorName || 'ع')[0].toUpperCase() }}
+            </div>
+            <div>
+              <span class="font-bold text-sm text-on-surface block">{{ selectedThread.authorName || 'عضو المنصة' }}</span>
+              <span class="text-[11px] text-on-surface-variant font-mono">{{ selectedThread.createdAt | date:'mediumDate' }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="voteThread(selectedThread, $event)"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary text-on-surface-variant text-xs font-bold transition-all cursor-pointer"
+              title="إعجاب بالسؤال"
+            >
+              <span class="material-symbols-outlined text-base">thumb_up</span>
+              <span>{{ selectedThread.votesCount || 0 }}</span>
+            </button>
+          </div>
+        </div>
+
+        <h1 class="font-headline-lg text-lg sm:text-2xl font-extrabold text-on-surface leading-snug">
+          {{ selectedThread.title }}
+        </h1>
+
+        <p class="font-body-md text-sm sm:text-base text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+          {{ selectedThread.content }}
+        </p>
+      </div>
+
+      <!-- Add Reply Box -->
+      <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-3xl border border-outline-variant/80 shadow-xs space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-xl">reply</span>
+          <h3 class="font-bold text-sm sm:text-base text-on-surface">أضف رداً على هذا الموضوع</h3>
+        </div>
+
+        @if (replyErrorMessage) {
+          <div class="p-3 rounded-2xl bg-error-container/20 border border-error/30 text-error text-xs font-semibold">
+            {{ replyErrorMessage }}
+          </div>
+        }
+
+        <textarea
+          [(ngModel)]="newReplyContent"
+          rows="3"
+          placeholder="اكتب ردك أو إجابتك التوضيحية لمساعدة زملائك..."
+          class="w-full p-3.5 rounded-2xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm leading-relaxed"
+        ></textarea>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            [disabled]="submittingReply"
+            (click)="submitReply()"
+            class="px-6 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span class="material-symbols-outlined text-base">send</span>
+            <span>{{ submittingReply ? 'جاري إرسال الرد...' : 'إرسال الرد' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Replies List -->
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-teal-700 text-xl">forum</span>
+          <h2 class="font-headline-lg text-base sm:text-lg font-bold text-on-surface">
+            الردود والمشاركات ({{ threadPosts.length }})
+          </h2>
+        </div>
+
+        @if (loadingPosts) {
+          <div class="p-8 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+            <div class="inline-block animate-spin w-6 h-6 border-3 border-primary border-t-transparent rounded-full mb-2"></div>
+            <p class="text-xs text-on-surface-variant">جاري تحميل الردود...</p>
+          </div>
+        } @else if (threadPosts.length === 0) {
+          <div class="p-8 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant text-on-surface-variant text-xs sm:text-sm">
+            لا توجد ردود حتى الآن. كن أول من يشارك في الإجابة!
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (post of threadPosts; track post.id) {
+              <div class="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-outline-variant/70 shadow-2xs space-y-2.5">
+                <div class="flex items-center justify-between text-xs text-on-surface-variant pb-2 border-b border-outline-variant/40">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-xl bg-surface-container text-on-surface font-bold flex items-center justify-center text-xs">
+                      {{ (post.authorName || 'ع')[0].toUpperCase() }}
+                    </div>
+                    <span class="font-bold text-on-surface text-xs">{{ post.authorName || 'عضو' }}</span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-mono">{{ post.createdAt | date:'mediumDate' }}</span>
+
+                    @if (canModifyPost(post)) {
+                      <div class="flex items-center gap-1 mr-2">
+                        <button
+                          type="button"
+                          (click)="startEditPost(post)"
+                          class="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                          title="تعديل الرد"
+                        >
+                          <span class="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="deletePost(post)"
+                          class="p-1 rounded-lg hover:bg-error/10 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                          title="حذف الرد"
+                        >
+                          <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (editingPostId === post.id) {
+                  <div class="space-y-2 pt-1">
+                    <textarea
+                      [(ngModel)]="editPostContent"
+                      rows="2"
+                      class="w-full p-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface text-xs focus:outline-none focus:border-primary"
+                    ></textarea>
+                    <div class="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="cancelEditPost()"
+                        class="px-3 py-1 rounded-lg text-xs border border-outline-variant hover:bg-surface-container cursor-pointer"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="button"
+                        (click)="saveEditPost(post)"
+                        class="px-3 py-1 rounded-lg bg-primary text-on-primary font-bold text-xs hover:bg-primary-container cursor-pointer"
+                      >
+                        حفظ التعديل
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="text-xs sm:text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                    {{ post.content }}
+                  </p>
+                }
+
+              </div>
+            }
+          </div>
+        }
+      </div>
+
     </div>
   } @else {
-    <div class="space-y-4">
-      @for (thread of threads; track thread.id) {
-        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:shadow-md transition-all flex items-start justify-between">
-          <div class="space-y-2">
-            <h3 class="font-headline-md text-lg font-bold text-on-surface hover:text-primary cursor-pointer">
-              {{ thread.title }}
-            </h3>
-            <p class="font-body-md text-on-surface-variant text-sm line-clamp-2">
-              {{ thread.content }}
-            </p>
-            <div class="flex items-center gap-4 text-xs text-on-surface-variant font-caption pt-2">
-              <span>بواسطة: <strong class="text-on-surface">{{ thread.authorName || 'عضو' }}</strong></span>
-              <span>•</span>
-              <span>{{ thread.createdAt | date:'mediumDate' }}</span>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 text-on-surface-variant text-sm whitespace-nowrap">
-            <div class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-base">forum</span>
-              <span>{{ thread.postsCount || 0 }} ردود</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-base">thumb_up</span>
-              <span>{{ thread.votesCount || 0 }}</span>
-            </div>
-          </div>
+    <!-- Forum Thread List View -->
+    <div class="space-y-6">
+      
+      <!-- Header Section -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="font-headline-lg text-xl sm:text-2xl md:text-3xl font-extrabold text-on-surface">منتدى المناقشات والاستفسارات</h1>
+          <p class="font-body-md text-on-surface-variant text-xs sm:text-sm mt-0.5 sm:mt-1">تواصل مع زملائك والمحاضرين واطرح تساؤلاتك واستفساراتك</p>
         </div>
-      } @empty {
-        <div class="text-center py-16 bg-surface-container-lowest rounded-2xl border border-outline-variant">
-          <span class="material-symbols-outlined text-5xl text-outline mb-2">forum</span>
-          <p class="text-on-surface-variant font-body-md">لا توجد مناقشات في الوقت الحالي، كن أول من يطرح استفساراً!</p>
+
+        <button
+          type="button"
+          (click)="openNewModal()"
+          class="px-5 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto shrink-0"
+        >
+          <span class="material-symbols-outlined text-lg">add_comment</span>
+          <span>إضافة موضوع جديد</span>
+        </button>
+      </div>
+
+      @if (loading) {
+        <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
+          <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+          <p class="text-on-surface-variant text-xs sm:text-sm font-label-md">جاري تحميل مناقشات المنتدى...</p>
+        </div>
+      } @else if (errorMessage) {
+        <div class="p-6 sm:p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl sm:rounded-3xl text-error space-y-3">
+          <span class="material-symbols-outlined text-4xl">cloud_off</span>
+          <p class="font-bold text-sm sm:text-base">{{ errorMessage }}</p>
+          <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+        </div>
+      } @else {
+        <div class="space-y-3 sm:space-y-4">
+          @for (thread of threads; track thread.id) {
+            <div
+              (click)="selectThread(thread)"
+              class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-xs hover:shadow-md hover:border-primary/50 transition-all flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4 cursor-pointer group"
+            >
+              <div class="space-y-1.5 sm:space-y-2 min-w-0 flex-1">
+                <h3 class="font-headline-md text-base sm:text-lg font-bold text-on-surface group-hover:text-primary transition-colors leading-snug">
+                  {{ thread.title }}
+                </h3>
+                <p class="font-body-md text-on-surface-variant text-xs sm:text-sm line-clamp-2 leading-relaxed">
+                  {{ thread.content }}
+                </p>
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-[11px] sm:text-xs text-on-surface-variant font-caption pt-1">
+                  <span>بواسطة: <strong class="text-on-surface">{{ thread.authorName || 'عضو' }}</strong></span>
+                  <span>•</span>
+                  <span>{{ thread.createdAt | date:'mediumDate' }}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 sm:gap-3 text-on-surface-variant text-xs sm:text-sm shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-outline-variant/50 w-full sm:w-auto justify-between sm:justify-end">
+                <div class="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-lg">
+                  <span class="material-symbols-outlined text-sm sm:text-base">forum</span>
+                  <span class="font-bold">{{ thread.postsCount || 0 }} ردود</span>
+                </div>
+
+                @if (canModifyThread(thread)) {
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      (click)="openEditModal(thread, $event)"
+                      class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                      title="تعديل الموضوع"
+                    >
+                      <span class="material-symbols-outlined text-base">edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="deleteThread(thread, $event)"
+                      class="p-1.5 rounded-lg hover:bg-error/10 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                      title="حذف الموضوع"
+                    >
+                      <span class="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </div>
+                }
+
+                <button
+                  type="button"
+                  (click)="voteThread(thread, $event)"
+                  class="flex items-center gap-1 bg-surface-container hover:bg-primary/10 hover:text-primary px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-sm sm:text-base">thumb_up</span>
+                  <span class="font-bold">{{ thread.votesCount || 0 }}</span>
+                </button>
+                <span class="material-symbols-outlined text-slate-400 group-hover:text-primary text-lg transition-transform group-hover:-translate-x-1">
+                  arrow_back
+                </span>
+              </div>
+            </div>
+          } @empty {
+            <div class="text-center py-12 sm:py-16 px-4 bg-surface-container-lowest rounded-2xl sm:rounded-3xl border border-outline-variant space-y-3">
+              <div class="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-3xl">forum</span>
+              </div>
+              <h3 class="font-headline-md text-base sm:text-lg font-bold text-on-surface">لا توجد مناقشات في الوقت الحالي</h3>
+              <p class="text-on-surface-variant font-body-md text-xs sm:text-sm max-w-sm mx-auto">
+                كن أول من يطرح استفساراً أو يبدأ حواراً هادفاً مع زملائك والمحاضرين!
+              </p>
+              <div class="pt-2">
+                <button
+                  type="button"
+                  (click)="openNewModal()"
+                  class="px-5 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-bold text-xs shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-base">add_comment</span>
+                  <span>طرح استفسار جديد</span>
+                </button>
+              </div>
+            </div>
+          }
         </div>
       }
+
     </div>
   }
 
   <!-- Create New Thread Modal -->
   @if (showNewModal) {
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 w-full max-w-lg shadow-2xl text-right space-y-5 animate-in fade-in zoom-in duration-200">
-        <div class="flex items-center justify-between border-b border-outline-variant pb-3">
-          <h3 class="font-bold text-xl text-on-surface">إضافة موضوع مناقشة جديد</h3>
-          <button (click)="closeModal()" class="text-on-surface-variant hover:text-on-surface">
-            <span class="material-symbols-outlined">close</span>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-4 sm:p-6 w-full max-w-md shadow-2xl text-right space-y-4 animate-in fade-in zoom-in duration-200">
+        
+        <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-primary text-xl">add_comment</span>
+            <h3 class="font-bold text-base sm:text-lg text-on-surface truncate">إضافة موضوع جديد</h3>
+          </div>
+          <button (click)="closeModal()" class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-xl">close</span>
           </button>
         </div>
 
         @if (modalErrorMessage) {
-          <div class="p-3 rounded-lg bg-error-container/20 border border-error/30 text-error text-sm font-semibold">
+          <div class="p-3 rounded-2xl bg-error-container/20 border border-error/30 text-error text-xs font-semibold">
             {{ modalErrorMessage }}
           </div>
         }
 
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div>
-            <label class="block text-xs font-semibold text-on-surface mb-1">عنوان الموضوع</label>
-            <input type="text" [(ngModel)]="newThread.title" placeholder="أدخل عنوان المناقشة..."
-                   class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm" />
+            <label class="block text-[11px] sm:text-xs font-bold text-on-surface mb-1">عنوان الموضوع</label>
+            <input
+              type="text"
+              [(ngModel)]="newThread.title"
+              placeholder="أدخل عنوان المناقشة..."
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm"
+            />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-on-surface mb-1">المحتوى بالتفصيل</label>
-            <textarea [(ngModel)]="newThread.content" rows="4" placeholder="اكتب سؤالك أو موضوعك هنا..."
-                      class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-sm"></textarea>
+            <label class="block text-[11px] sm:text-xs font-bold text-on-surface mb-1">المحتوى بالتفصيل</label>
+            <textarea
+              [(ngModel)]="newThread.content"
+              rows="4"
+              placeholder="اكتب سؤالك أو موضوعك بالتفصيل هنا..."
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm leading-relaxed"
+            ></textarea>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant">
-          <app-button variant="outline" (onClick)="closeModal()">إلغاء</app-button>
-          <app-button variant="primary" [loading]="saving" (onClick)="createThread()">نشر الموضوع</app-button>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/60">
+          <button
+            type="button"
+            (click)="closeModal()"
+            class="px-4 py-2 rounded-xl text-on-surface border border-outline-variant hover:bg-surface-container text-xs font-semibold transition-all cursor-pointer"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            [disabled]="saving"
+            (click)="createThread()"
+            class="px-5 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
+          >
+            {{ saving ? 'جاري النشر...' : 'نشر الموضوع' }}
+          </button>
         </div>
+
       </div>
     </div>
   }
+
+  <!-- Edit Thread Modal -->
+  @if (showEditModal) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl p-4 sm:p-6 w-full max-w-md shadow-2xl text-right space-y-4 animate-in fade-in zoom-in duration-200">
+        
+        <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-primary text-xl">edit</span>
+            <h3 class="font-bold text-base sm:text-lg text-on-surface truncate">تعديل موضوع المناقشة</h3>
+          </div>
+          <button (click)="closeEditModal()" class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+
+        @if (editErrorMessage) {
+          <div class="p-3 rounded-2xl bg-error-container/20 border border-error/30 text-error text-xs font-semibold">
+            {{ editErrorMessage }}
+          </div>
+        }
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-[11px] sm:text-xs font-bold text-on-surface mb-1">عنوان الموضوع</label>
+            <input
+              type="text"
+              [(ngModel)]="editThreadData.title"
+              placeholder="أدخل عنوان المناقشة..."
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-[11px] sm:text-xs font-bold text-on-surface mb-1">المحتوى بالتفصيل</label>
+            <textarea
+              [(ngModel)]="editThreadData.content"
+              rows="4"
+              placeholder="اكتب تفاصيل الموضوع..."
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm leading-relaxed"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/60">
+          <button
+            type="button"
+            (click)="closeEditModal()"
+            class="px-4 py-2 rounded-xl text-on-surface border border-outline-variant hover:bg-surface-container text-xs font-semibold transition-all cursor-pointer"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            [disabled]="savingEdit"
+            (click)="updateThread()"
+            class="px-5 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
+          >
+            {{ savingEdit ? 'جاري الحفظ...' : 'حفظ التعديلات' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
 </div>

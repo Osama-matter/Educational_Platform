@@ -27,6 +27,16 @@ export class AccountService {
     );
   }
 
+  getMe(): Observable<UserDto | null> {
+    return this.http.get<UserDto>(`${this.base}/me`).pipe(
+      tap((res) => this.authStore.setSession(res)),
+      catchError(() => {
+        this.authStore.clearSession();
+        return of(null);
+      })
+    );
+  }
+
   logout(): Observable<void> {
     this.authStore.clearSession();
     return this.http.post<void>(`${this.base}/Logout`, {}).pipe(

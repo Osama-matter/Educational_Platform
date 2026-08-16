@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { QuizzesService } from '../../../core/services/quizzes.service';
 import { CoursesService } from '../../../core/services/courses.service';
 import { LessonsService } from '../../../core/services/lessons.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { CourseSummary } from '../../../core/models/course.models';
 import { LessonDto } from '../../../core/models/lesson.models';
 import { QuizDto, CreateQuizDto, CreateQuestionDto } from '../../../core/models/quiz.models';
@@ -14,6 +15,24 @@ export interface LocalQuestion {
   text: string;
   score: number;
   options: { text: string; isCorrect: boolean }[];
+}
+
+function getSafeIsoDate(dateInput?: string | Date | null, fallbackDaysAhead = 0): string {
+  const fallback = new Date(Date.now() + fallbackDaysAhead * 24 * 60 * 60 * 1000);
+  if (!dateInput) return fallback.toISOString();
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime()) || d.getFullYear() < 2000 || d.getFullYear() > 2100) {
+      return fallback.toISOString();
+    }
+    return d.toISOString();
+  } catch {
+    return fallback.toISOString();
+  }
+}
+
+function getSafeDateInputString(dateInput?: string | Date | null, fallbackDaysAhead = 0): string {
+  return getSafeIsoDate(dateInput, fallbackDaysAhead).substring(0, 10);
 }
 
 @Component({
@@ -27,6 +46,7 @@ export class QuizBuilderComponent implements OnInit {
   private quizzesService = inject(QuizzesService);
   private coursesService = inject(CoursesService);
   private lessonsService = inject(LessonsService);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   courses: CourseSummary[] = [];
@@ -40,11 +60,11 @@ export class QuizBuilderComponent implements OnInit {
   loadingLessons = false;
   loadingQuizzes = false;
   saving = false;
+  editingQuizId: string | null = null;
 
-  successMessage: string | null = null;
   errorMessage: string | null = null;
+  successMessage: string | null = null;
 
-  // Quiz Form Model
   quizModel: CreateQuizDto = {
     title: '',
     description: '',
@@ -52,8 +72,8 @@ export class QuizBuilderComponent implements OnInit {
     totalScore: 100,
     passingScore: 70,
     isPublished: true,
-    availableFrom: new Date().toISOString().substring(0, 10),
-    availableTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
+    availableFrom: getSafeDateInputString(null, 0),
+    availableTo: getSafeDateInputString(null, 30),
     lessonId: ''
   };
 
@@ -174,19 +194,102 @@ export class QuizBuilderComponent implements OnInit {
     });
   }
 
+  editQuiz(quiz: QuizDto): void {
+    this.editingQuizId = quiz.id;
+    this.quizModel = {
+      title: quiz.title,
+      description: quiz.description || '',
+      durationMinutes: quiz.durationMinutes || 20,
+      totalScore: quiz.totalScore || 100,
+      passingScore: quiz.passingScore || 70,
+      isPublished: quiz.isPublished ?? true,
+      availableFrom: getSafeDateInputString(quiz.availableFrom, 0),
+      availableTo: getSafeDateInputString(quiz.availableTo, 30),
+      lessonId: quiz.lessonId
+    };
+
+    if (quiz.lessonId) {
+      this.selectedLessonId = quiz.lessonId;
+    }
+
+    // Load admin questions details
+    this.quizzesService.getAdminDetails(quiz.id).subscribe({
+      next: (details) => {
+        if (details?.questions && details.questions.length > 0) {
+          this.questions = details.questions.map(q => ({
+            text: q.content || q.text || '',
+            score: q.score || 10,
+            options: (q.options || []).map(opt => ({
+              text: opt.text || '',
+              isCorrect: !!opt.isCorrect
+            }))
+          }));
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.quizzesService.getById(quiz.id).subscribe({
+          next: (res) => {
+            if (res?.questions && res.questions.length > 0) {
+              this.questions = res.questions.map(q => ({
+                text: q.content || q.text || '',
+                score: q.score || 10,
+                options: (q.options || []).map(opt => ({
+                  text: opt.text || '',
+                  isCorrect: !!opt.isCorrect
+                }))
+              }));
+            }
+            this.cdr.markForCheck();
+          }
+        });
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.toast.info(`جاري تعديل اختبار: ${quiz.title}`);
+    this.cdr.markForCheck();
+  }
+
+  cancelEdit(): void {
+    this.editingQuizId = null;
+    this.quizModel = {
+      title: '',
+      description: '',
+      durationMinutes: 20,
+      totalScore: 100,
+      passingScore: 70,
+      isPublished: true,
+      availableFrom: getSafeDateInputString(null, 0),
+      availableTo: getSafeDateInputString(null, 30),
+      lessonId: this.selectedLessonId
+    };
+    this.questions = [
+      {
+        text: '',
+        score: 10,
+        options: [
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false }
+        ]
+      }
+    ];
+    this.cdr.markForCheck();
+  }
+
   saveQuiz(): void {
     if (!this.selectedCourseId) {
-      this.errorMessage = 'يرجى اختيار الدورة التعليمية أولاً.';
+      this.toast.warning('يرجى اختيار الدورة التعليمية أولاً.');
       return;
     }
 
     if (!this.selectedLessonId) {
-      this.errorMessage = 'يرجى اختيار الدرس التابع للدورة لربط الاختبار به.';
+      this.toast.warning('يرجى اختيار الدرس التابع للدورة لربط الاختبار به.');
       return;
     }
 
     if (!this.quizModel.title.trim()) {
-      this.errorMessage = 'يرجى إدخال عنوان الاختبار.';
+      this.toast.warning('يرجى إدخال عنوان الاختبار.');
       return;
     }
 
@@ -197,44 +300,48 @@ export class QuizBuilderComponent implements OnInit {
     const payload: CreateQuizDto = {
       ...this.quizModel,
       lessonId: this.selectedLessonId,
-      availableFrom: new Date(this.quizModel.availableFrom || Date.now()).toISOString(),
-      availableTo: new Date(this.quizModel.availableTo || Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      availableFrom: getSafeIsoDate(this.quizModel.availableFrom, 0),
+      availableTo: getSafeIsoDate(this.quizModel.availableTo, 30),
     };
 
-    this.quizzesService.create(payload).subscribe({
-      next: (createdRes) => {
-        const quizId = typeof createdRes === 'string' ? createdRes : (createdRes?.id || '');
-
-        // Save questions if created and has valid ID
-        if (quizId) {
-          this.saveQuestionsForQuiz(quizId);
-        }
-
-        this.saving = false;
-        this.successMessage = 'تم إنشاء وحفظ الاختبار وربطه بالدورة والدرس بنجاح!';
-        this.loadQuizzes();
-
-        // Reset title & questions
-        this.quizModel.title = '';
-        this.quizModel.description = '';
-        this.questions = [
-          {
-            text: '',
-            score: 10,
-            options: [
-              { text: '', isCorrect: true },
-              { text: '', isCorrect: false }
-            ]
+    if (this.editingQuizId) {
+      this.quizzesService.update(this.editingQuizId, payload).subscribe({
+        next: () => {
+          if (this.editingQuizId) {
+            this.saveQuestionsForQuiz(this.editingQuizId);
           }
-        ];
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.saving = false;
-        this.errorMessage = err?.error?.message || 'تعذر حفظ الاختبار على الخادم.';
-        this.cdr.markForCheck();
-      }
-    });
+          this.saving = false;
+          this.toast.success('تم تحديث بيانات وإعدادات الاختبار بنجاح!');
+          this.cancelEdit();
+          this.loadQuizzes();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.saving = false;
+          this.toast.error(err?.error?.message || 'تعذر تحديث الاختبار على الخادم.');
+          this.cdr.markForCheck();
+        }
+      });
+    } else {
+      this.quizzesService.create(payload).subscribe({
+        next: (createdRes) => {
+          const quizId = typeof createdRes === 'string' ? createdRes : (createdRes?.id || '');
+          if (quizId) {
+            this.saveQuestionsForQuiz(quizId);
+          }
+          this.saving = false;
+          this.toast.success('تم إنشاء وحفظ الاختبار وربطه بالدورة والدرس بنجاح!');
+          this.cancelEdit();
+          this.loadQuizzes();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.saving = false;
+          this.toast.error(err?.error?.message || 'تعذر حفظ الاختبار على الخادم.');
+          this.cdr.markForCheck();
+        }
+      });
+    }
   }
 
   private saveQuestionsForQuiz(quizId: string): void {
@@ -250,43 +357,54 @@ export class QuizBuilderComponent implements OnInit {
       };
 
       this.quizzesService.createQuestion(qDto).subscribe({
-        next: (createdQ) => {
-          const qId = createdQ?.id;
+        next: (createdQ: any) => {
+          const qId = typeof createdQ === 'string' ? createdQ : (createdQ?.id || createdQ?.questionId || createdQ?.data);
           if (qId && q.options) {
             for (const opt of q.options) {
               if (opt.text.trim()) {
                 this.quizzesService.createOption({
                   questionId: qId,
-                  text: opt.text,
-                  isCorrect: opt.isCorrect
-                }).subscribe();
+                  text: opt.text.trim(),
+                  isCorrect: !!opt.isCorrect
+                }).subscribe({
+                  error: (err) => console.error('Failed to create option for question:', qId, err)
+                });
               }
             }
           }
-        }
+        },
+        error: (err) => console.error('Failed to create question:', err)
       });
     }
   }
 
-  deleteQuiz(id: string): void {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذا الاختبار؟')) {
-      this.quizzesService.delete(id).subscribe({
-        next: () => {
-          this.existingQuizzes = this.existingQuizzes.filter(q => q.id !== id);
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل حذف الاختبار من الخادم.')
-      });
-    }
+  async deleteQuiz(id: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف الاختبار',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا الاختبار؟',
+      confirmText: 'حذف الاختبار',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.quizzesService.delete(id).subscribe({
+      next: () => {
+        this.existingQuizzes = this.existingQuizzes.filter(q => q.id !== id);
+        this.toast.success('تم حذف الاختبار بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل حذف الاختبار من الخادم.')
+    });
   }
 
   publishQuiz(quiz: QuizDto): void {
     this.quizzesService.publish(quiz.id).subscribe({
       next: () => {
         quiz.isPublished = true;
+        this.toast.success('تم نشر الاختبار للطلاب بنجاح');
         this.cdr.markForCheck();
       },
-      error: () => alert('فشل نشر الاختبار.')
+      error: () => this.toast.error('فشل نشر الاختبار.')
     });
   }
 

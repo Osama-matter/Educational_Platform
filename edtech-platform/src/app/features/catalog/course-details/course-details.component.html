@@ -1,295 +1,476 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-right space-y-10">
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 text-right space-y-6 sm:space-y-8">
   @if (loading) {
-    <div class="h-96 bg-surface-container-high rounded-2xl animate-pulse"></div>
+    <div class="h-96 bg-surface-container-high rounded-3xl animate-pulse"></div>
   } @else if (errorMessage) {
-    <div class="p-12 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
-      <span class="material-symbols-outlined text-5xl">cloud_off</span>
-      <p class="font-bold text-lg">{{ errorMessage }}</p>
+    <div class="p-8 sm:p-12 text-center bg-error-container/20 border border-error/30 rounded-2xl sm:rounded-3xl text-error space-y-4">
+      <span class="material-symbols-outlined text-4xl sm:text-5xl">cloud_off</span>
+      <p class="font-bold text-sm sm:text-lg">{{ errorMessage }}</p>
       <app-button variant="outline" (onClick)="loadCourse()">إعادة المحاولة</app-button>
     </div>
   } @else if (course) {
-    <!-- Header Banner -->
-    <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-      <div class="lg:col-span-2">
-        <div class="flex items-center gap-3 mb-4">
-          <app-badge [text]="course.price > 0 ? (course.price + ' ج.م') : 'مجاني'" [variant]="course.price > 0 ? 'secondary' : 'primary'" />
-          <span class="text-xs text-on-surface-variant font-label-md">{{ course.numberOfSections }} أقسام تعليمية</span>
-        </div>
-
-        <h1 class="font-headline-lg text-3xl sm:text-4xl font-bold text-on-surface mb-4 leading-tight">
-          {{ course.title }}
-        </h1>
-
-        <p class="font-body-lg text-on-surface-variant text-base leading-relaxed mb-6">
-          {{ course.description }}
-        </p>
-
-        <div class="flex flex-wrap items-center gap-6 text-sm text-on-surface-variant mb-6">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">person</span>
-            <span>المحاضر: <strong class="text-on-surface">{{ course.instructorName || 'محاضر المنصة' }}</strong></span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">schedule</span>
-            <span>المدة الإجمالية: <strong class="text-on-surface">{{ course.estimatedDurationHours }} ساعة</strong></span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-amber-500">star</span>
-            <span>التقييم: <strong class="text-on-surface">{{ course.rating || 4.9 }} ({{ reviews.length }} تقييم)</strong></span>
-          </div>
-        </div>
-
-        @if (enrollErrorMessage) {
-          <div class="p-3 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs mb-4">
-            {{ enrollErrorMessage }}
-          </div>
-        }
-
-        <div class="flex gap-4">
-          @if (isEnrolled) {
-            <a [routerLink]="['/learning', course.id]">
-              <app-button variant="primary" icon="play_circle">الدخول إلى الدورة ومتابعة التعلم</app-button>
-            </a>
-          } @else if (course.price > 0) {
-            <a [routerLink]="['/checkout', course.id]">
-              <app-button variant="primary" icon="shopping_cart">شراء الدورة الآن ({{ course.price }} ج.م)</app-button>
-            </a>
-          } @else {
-            <app-button variant="primary" icon="check_circle" [loading]="enrolling" (onClick)="enrollFree()">
-              التسجيل المجاني في الدورة
-            </app-button>
-          }
-        </div>
+    <!-- Breadcrumb & Share Header -->
+    <div class="flex items-center justify-between text-xs sm:text-sm text-on-surface-variant pb-2 border-b border-outline-variant/50 gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <a routerLink="/catalog" class="hover:text-primary transition-colors shrink-0">تصفح الدورات</a>
+        <span>/</span>
+        <span class="text-on-surface font-semibold truncate">{{ course.title }}</span>
       </div>
 
-      <div class="rounded-2xl overflow-hidden border border-outline-variant shadow-md h-64 bg-gradient-to-tr from-primary/90 via-primary to-secondary/80 flex items-center justify-center relative">
-        @if (course.imageUrl && !imageError) {
-          <img [src]="course.imageUrl" [alt]="course.title" (error)="onImageError()" class="w-full h-64 object-cover" />
-        } @else {
-          <div class="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary to-secondary/90 flex flex-col items-center justify-center p-6 text-center">
-            <span class="material-symbols-outlined text-6xl text-on-primary/90 mb-2 animate-pulse">menu_book</span>
-            <span class="font-headline-md text-on-primary text-base font-bold truncate max-w-full px-2 opacity-90">{{ course.title }}</span>
-          </div>
-        }
-      </div>
+      <button
+        type="button"
+        (click)="copyShareLink()"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant/60 text-on-surface text-xs font-bold transition-all cursor-pointer shadow-2xs shrink-0"
+        title="مشاركة رابط الدورة"
+      >
+        <span class="material-symbols-outlined text-base">share</span>
+        <span>مشاركة</span>
+      </button>
     </div>
 
-    <!-- Grid: Lessons Syllabus & Course Resources -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Lessons Syllabus List (2 Cols) -->
-      <div class="lg:col-span-2 bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="font-headline-lg text-2xl font-bold text-on-surface">منهاج وقائمة دروس الدورة</h2>
-            <p class="text-xs text-on-surface-variant mt-0.5">اختر أي درس لبدء المشاهدة ومتابعة التعلم</p>
-          </div>
-          <span class="text-xs text-on-surface-variant font-mono bg-surface-container px-3 py-1.5 rounded-xl font-bold">{{ lessons.length }} دروس</span>
-        </div>
-
-        <div class="space-y-3">
-          @for (lesson of lessons; track lesson.id; let idx = $index) {
-            <div class="flex items-center justify-between p-4 rounded-2xl bg-surface border border-outline-variant/60 hover:border-primary/50 hover:bg-surface-container-low transition-all">
-              <div class="flex items-center gap-4">
-                <div class="w-9 h-9 rounded-xl bg-primary-container/20 text-primary flex items-center justify-center font-bold text-sm">
-                  {{ lesson.orderIndex ?? lesson.order ?? (idx + 1) }}
-                </div>
-                <div>
-                  <h4 class="font-label-md text-on-surface text-base font-semibold">{{ lesson.title }}</h4>
-                  <p class="font-caption text-on-surface-variant text-xs mt-0.5">{{ lesson.durationMinutes || 15 }} دقيقة</p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3">
-                @if (lesson.isFreePreview) {
-                  <span class="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary text-xs font-semibold">معاينة مجانية</span>
-                }
-                @if (isEnrolled) {
-                  <a
-                    [routerLink]="['/learning', course.id]"
-                    [queryParams]="{ lessonId: lesson.id }"
-                    class="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1.5 shadow-xs"
-                  >
-                    <span class="material-symbols-outlined text-base">play_arrow</span>
-                    <span>بدء الدرس</span>
-                  </a>
-                }
-              </div>
-            </div>
-          } @empty {
-            <div class="text-center py-8 text-on-surface-variant font-body-md">
-              سيتم إضافة دروس هذه الدورة قريباً.
-            </div>
-          }
-        </div>
+    <!-- Share Toast Notification -->
+    @if (copiedToast) {
+      <div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-xl border border-white/20 flex items-center gap-2 animate-fadeIn">
+        <span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>
+        <span>تم نسخ رابط الدورة بنجاح!</span>
       </div>
+    }
 
-      <!-- Course Files & Attachments (1 Col) -->
-      <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-4">
-        <div class="flex items-center gap-2 text-on-surface font-bold text-xl">
-          <span class="material-symbols-outlined text-primary">folder_open</span>
-          <h3>ملفات ومرفقات الدورة</h3>
+    <!-- Main Grid: Content (8 cols) & Sticky Card (4 cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+      
+      <!-- Right Column: Main Course Information (8 cols in RTL) -->
+      <div class="lg:col-span-8 space-y-6 sm:space-y-8">
+        
+        <!-- Hero Header Box -->
+        <div class="bg-surface-container-lowest p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-xs space-y-4 sm:space-y-5">
+          <!-- Badges Bar -->
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span
+              class="px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold shadow-2xs flex items-center gap-1"
+              [ngClass]="course.price > 0 
+                ? 'bg-amber-500/15 text-amber-700 border border-amber-500/30' 
+                : 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'"
+            >
+              <span class="material-symbols-outlined text-xs">{{ course.price > 0 ? 'payments' : 'redeem' }}</span>
+              <span>{{ course.price > 0 ? (course.price + ' ج.م') : 'دورة مجانية بالكامل' }}</span>
+            </span>
+
+            <span class="px-2.5 sm:px-3 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/60 text-[11px] sm:text-xs font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-teal-600">layers</span>
+              <span>{{ course.numberOfSections || 1 }} أقسام تعليمية</span>
+            </span>
+
+            <span class="px-2.5 sm:px-3 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/60 text-[11px] sm:text-xs font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-primary">play_lesson</span>
+              <span>{{ lessons.length }} دروس مسجلة</span>
+            </span>
+          </div>
+
+          <!-- Course Title -->
+          <h1 class="font-display-lg text-xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface leading-tight tracking-tight">
+            {{ course.title }}
+          </h1>
+
+          <!-- Course Description -->
+          <p class="font-body-lg text-on-surface-variant text-xs sm:text-base leading-relaxed">
+            {{ course.description || 'دورة تدريبية متكاملة تتضمن دروساً عملية ومشاريع تطبيقية واختبارات قياس مستوى تؤهلك لاحتراف المهارات العملية.' }}
+          </p>
+
+          <!-- Rating & Stats Row -->
+          <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs sm:text-sm pt-3 sm:pt-4 border-t border-outline-variant/50">
+            <div class="flex items-center gap-1 bg-amber-500/10 text-amber-700 px-2.5 py-1 rounded-xl border border-amber-500/20 font-bold">
+              <span class="material-symbols-outlined text-amber-500 text-sm sm:text-base">star</span>
+              <span>{{ averageRating > 0 ? averageRating : 'جديد' }}</span>
+              @if (reviews.length > 0) {
+                <span class="text-[11px] text-on-surface-variant font-normal">({{ reviews.length }})</span>
+              }
+            </div>
+
+            <div class="flex items-center gap-1 text-on-surface-variant bg-surface-container/70 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs">
+              <span class="material-symbols-outlined text-primary text-sm sm:text-base">group</span>
+              <span>{{ (course.enrolledStudentsCount ?? 0) }} طالب</span>
+            </div>
+
+            <div class="flex items-center gap-1 text-on-surface-variant bg-surface-container/70 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs">
+              <span class="material-symbols-outlined text-teal-600 text-sm sm:text-base">schedule</span>
+              <span>{{ course.estimatedDurationHours || 12 }} ساعة</span>
+            </div>
+          </div>
         </div>
-        <p class="text-xs text-on-surface-variant">المراجع والملفات الملحقة القابلة للتحميل</p>
 
-        <div class="space-y-2.5 pt-2">
-          @for (file of courseFiles; track file.id) {
+        <!-- 3 Highlights Badges -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-xl">play_circle</span>
+            </div>
+            <div>
+              <span class="block text-xs font-bold text-on-surface">{{ course.estimatedDurationHours || 12 }} ساعة تدريبية</span>
+              <span class="text-[11px] text-on-surface-variant">فيديوهات عالية الدقة</span>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-xl">verified</span>
+            </div>
+            <div>
+              <span class="block text-xs font-bold text-on-surface">شهادة إتمام معتمدة</span>
+              <span class="text-[11px] text-on-surface-variant">عند إنهاء جميع الدروس</span>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs">
+            <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-xl">all_inclusive</span>
+            </div>
+            <div>
+              <span class="block text-xs font-bold text-on-surface">وصول دائم ومستمر</span>
+              <span class="text-[11px] text-on-surface-variant">مشاهدة في أي وقت</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instructor Box -->
+        <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white font-bold text-lg sm:text-xl flex items-center justify-center shadow-sm shrink-0">
+              {{ (course.instructorName || 'أ')[0] }}
+            </div>
+            <div class="min-w-0">
+              <span class="text-[11px] sm:text-xs text-on-surface-variant block font-medium">مقدّم الدورة والمحاضر:</span>
+              <h3 class="font-bold text-sm sm:text-base text-on-surface mt-0.5 truncate">
+                {{ course.instructorName || 'محاضر معتمد بالمنصة' }}
+              </h3>
+              <p class="text-[11px] sm:text-xs text-on-surface-variant mt-0.5 line-clamp-1">
+                أستاذ ومحاضر متخصص في المجال بخبرة أكاديمية وتطبيقية واسعة
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Curriculum / Lessons Accordion List Section -->
+        <div class="bg-surface-container-lowest p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-xs space-y-4 sm:space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-outline-variant/60 gap-2">
+            <div>
+              <h2 class="font-headline-lg text-lg sm:text-2xl font-bold text-on-surface">
+                محتوى ومنهاج الدورة
+              </h2>
+              <p class="text-[11px] sm:text-xs text-on-surface-variant mt-0.5">
+                اضغط على أي قسم لعرض قائمة الدروس وبدء التعلم
+              </p>
+            </div>
+
+            <div class="text-[11px] sm:text-xs font-semibold text-on-surface-variant bg-surface-container px-3 py-1 rounded-xl border border-outline-variant/60 self-start sm:self-auto shrink-0">
+              {{ lessons.length }} دروس • {{ totalLessonsDuration || (lessons.length * 15) }} دقيقة
+            </div>
+          </div>
+
+          <!-- Section / Lessons Accordion Cards -->
+          <div class="space-y-3">
+            @for (sec of courseSections; track sec.sectionNumber) {
+              <div class="bg-surface border border-outline-variant/70 rounded-2xl overflow-hidden transition-all duration-300 shadow-2xs">
+                <!-- Section Header (Clickable Toggle) -->
+                <button
+                  type="button"
+                  (click)="toggleSection(sec.sectionNumber)"
+                  class="w-full p-3.5 sm:p-5 flex items-center justify-between gap-3 text-right cursor-pointer select-none transition-colors hover:bg-surface-container-low"
+                >
+                  <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                      {{ sec.sectionNumber }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <h4 class="font-bold text-xs sm:text-base text-on-surface truncate">
+                        القسم {{ sec.sectionNumber }}: {{ sec.title }}
+                      </h4>
+                      <p class="text-[11px] sm:text-xs text-on-surface-variant mt-0.5">
+                        {{ sec.lessons.length }} دروس • {{ sec.totalDuration }} دقيقة
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Chevron Icon -->
+                  <div
+                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center transition-transform duration-300 shrink-0 shadow-2xs"
+                    [class.rotate-180]="isSectionExpanded(sec.sectionNumber)"
+                  >
+                    <span class="material-symbols-outlined text-lg sm:text-xl">expand_more</span>
+                  </div>
+                </button>
+
+                <!-- Expanded Lessons List -->
+                @if (isSectionExpanded(sec.sectionNumber)) {
+                  <div class="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 border-t border-outline-variant/40 space-y-2 animate-fadeIn">
+                    @for (lesson of sec.lessons; track lesson.id; let lIdx = $index) {
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/50 hover:border-primary/40 hover:shadow-2xs transition-all gap-2.5">
+                        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center font-bold text-xs shrink-0">
+                            {{ lIdx + 1 }}
+                          </div>
+                          <div class="min-w-0 flex-1">
+                            <span class="font-bold text-xs sm:text-sm text-on-surface line-clamp-1 block">
+                              {{ lesson.title }}
+                            </span>
+                            <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-medium">
+                              {{ lesson.durationMinutes || 15 }} دقيقة
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 shrink-0">
+                          @if (lesson.isFreePreview) {
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-[10px] font-bold">
+                              معاينة مجانية
+                            </span>
+                          }
+
+                          @if (isEnrolled || lesson.isFreePreview) {
+                            <a
+                              [routerLink]="['/learning', course.id]"
+                              [queryParams]="{ lessonId: lesson.id }"
+                              class="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center gap-1 hover:bg-primary-container transition-all shadow-2xs cursor-pointer"
+                              title="بدء مشاهدة الدرس"
+                            >
+                              <span class="material-symbols-outlined text-sm">play_arrow</span>
+                              <span>بدء الدرس</span>
+                            </a>
+                          } @else {
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center" title="مغلق">
+                              <span class="material-symbols-outlined text-base">lock</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    } @empty {
+                      <p class="text-xs text-on-surface-variant text-center py-4">سيتم إدراج دروس هذا القسم قريباً.</p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Student Reviews Section -->
+        <div class="bg-surface-container-lowest p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-xs space-y-4 sm:space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-outline-variant/60 gap-3">
+            <div>
+              <h2 class="font-headline-lg text-lg sm:text-2xl font-bold text-on-surface">
+                آراء وتقييمات الطلاب
+              </h2>
+              <p class="text-[11px] sm:text-xs text-on-surface-variant mt-0.5">
+                تجارب الطلاب المشتركين في هذه الدورة
+              </p>
+            </div>
+
             <button
               type="button"
-              (click)="downloadFile(file, $event)"
-              class="w-full flex items-center justify-between p-3 rounded-xl bg-surface border border-outline-variant/60 hover:bg-surface-container-low transition-all group cursor-pointer text-right"
+              (click)="showReviewForm = !showReviewForm"
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-all cursor-pointer self-start sm:self-auto shrink-0"
             >
-              <div class="flex items-center gap-2.5">
-                <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">description</span>
-                <span class="text-xs font-semibold text-on-surface truncate max-w-[150px]">{{ file.fileName }}</span>
-              </div>
-              <span class="material-symbols-outlined text-sm text-primary">download</span>
+              {{ showReviewForm ? 'إخفاء نموذج التقييم' : 'أضف تقييمك للدورة' }}
             </button>
-          } @empty {
-            <p class="text-xs text-on-surface-variant text-center py-6">لا توجد ملفات مرفقة حالياً</p>
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- Reviews and Ratings Section -->
-    <div class="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant shadow-sm space-y-8">
-      <div class="flex items-center justify-between border-b border-outline-variant pb-4">
-        <div>
-          <h2 class="font-headline-lg text-2xl font-bold text-on-surface">آراء وتقييمات الطلاب</h2>
-          <p class="text-xs text-on-surface-variant mt-1">تجارب الطلاب المشتركين في هذه الدورة</p>
-        </div>
-      </div>
-
-      <!-- Add Review Form -->
-      <div class="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4">
-        <h3 class="font-bold text-base text-on-surface">أضف تقييمك للدورة</h3>
-
-        @if (reviewErrorMessage) {
-          <div class="p-3 bg-error-container/20 border border-error/30 text-error rounded-xl text-xs font-semibold">
-            {{ reviewErrorMessage }}
           </div>
-        }
-        @if (reviewSuccessMessage) {
-          <div class="p-3 bg-primary-container/20 border border-primary/30 text-primary rounded-xl text-xs font-semibold">
-            {{ reviewSuccessMessage }}
-          </div>
-        }
 
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-on-surface">التقييم بالنجوم:</span>
-          <div class="flex gap-1">
-            @for (star of [1, 2, 3, 4, 5]; track star) {
-              <button
-                type="button"
-                (click)="newReview.rate = star"
-                class="text-2xl transition-transform hover:scale-125 cursor-pointer"
-                [class.text-amber-400]="star <= newReview.rate"
-                [class.text-surface-variant]="star > newReview.rate"
-              >
-                ★
-              </button>
-            }
-          </div>
-        </div>
+          <!-- Add Review Form -->
+          @if (showReviewForm) {
+            <div class="bg-surface rounded-2xl border border-outline-variant p-4 sm:p-5 space-y-4 animate-fadeIn">
+              <h4 class="font-bold text-xs sm:text-sm text-on-surface">كتابة تقييمك للدورة:</h4>
 
-        <textarea
-          [(ngModel)]="newReview.comment"
-          rows="3"
-          placeholder="شاركنا رأيك وتجربتك في محتوى الدورة والشرح..."
-          class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container text-on-surface focus:outline-none focus:border-primary text-sm"
-        ></textarea>
-
-        <div class="flex justify-end">
-          <app-button variant="primary" icon="send" [loading]="submittingReview" (onClick)="submitReview()">
-            إرسال التقييم
-          </app-button>
-        </div>
-      </div>
-
-      <!-- Reviews List -->
-      <div class="space-y-4">
-        @for (rev of reviews; track rev.id) {
-          <div class="p-5 rounded-2xl bg-surface border border-outline-variant/60 space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-container font-bold flex items-center justify-center text-sm">
-                  {{ (rev.userFullName || 'ط').charAt(0) }}
+              @if (reviewErrorMessage) {
+                <div class="p-3 bg-error-container/20 border border-error/30 text-error rounded-xl text-xs font-semibold">
+                  {{ reviewErrorMessage }}
                 </div>
-                <div>
-                  <h4 class="font-bold text-sm text-on-surface">{{ rev.userFullName || 'طالب مسجل' }}</h4>
-                  <span class="text-[11px] text-on-surface-variant font-mono">{{ rev.createdAt | date:'mediumDate' }}</span>
+              }
+              @if (reviewSuccessMessage) {
+                <div class="p-3 bg-primary-container/20 border border-primary/30 text-primary rounded-xl text-xs font-semibold">
+                  {{ reviewSuccessMessage }}
                 </div>
-              </div>
+              }
 
               <div class="flex items-center gap-3">
-                <div class="text-amber-400 text-sm">
-                  @for (s of [1, 2, 3, 4, 5]; track s) {
-                    <span>{{ s <= rev.rate ? '★' : '☆' }}</span>
+                <span class="text-xs font-bold text-on-surface">التقييم بالنجوم:</span>
+                <div class="flex gap-1">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <button
+                      type="button"
+                      (click)="newReview.rate = star"
+                      class="text-2xl transition-transform hover:scale-125 cursor-pointer leading-none"
+                      [class.text-amber-400]="star <= newReview.rate"
+                      [class.text-surface-variant]="star > newReview.rate"
+                    >
+                      ★
+                    </button>
                   }
                 </div>
+              </div>
 
-                @if (canManageReviews()) {
-                  <button (click)="deleteReview(rev.id)" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors" title="حذف">
-                    <span class="material-symbols-outlined text-base">delete</span>
-                  </button>
-                }
+              <textarea
+                [(ngModel)]="newReview.comment"
+                rows="3"
+                placeholder="شاركنا رأيك وتجربتك في محتوى الدورة والشرح..."
+                class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface-container text-on-surface focus:outline-none focus:border-primary text-xs sm:text-sm transition-colors"
+              ></textarea>
+
+              <div class="flex justify-end">
+                <app-button variant="primary" icon="send" [loading]="submittingReview" (onClick)="submitReview()">
+                  إرسال التقييم
+                </app-button>
               </div>
             </div>
+          }
 
-            <p class="font-body-md text-on-surface text-sm leading-relaxed">{{ rev.comment }}</p>
+          <!-- Reviews Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            @for (rev of reviews; track rev.id) {
+              <div class="bg-surface border border-outline-variant/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs space-y-3 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="text-amber-400 text-sm flex gap-0.5">
+                      @for (s of [1, 2, 3, 4, 5]; track s) {
+                        <span>{{ s <= rev.rate ? '★' : '☆' }}</span>
+                      }
+                    </div>
+                    <span class="text-[10px] sm:text-[11px] text-on-surface-variant font-medium">
+                      {{ rev.createdAt ? (rev.createdAt | date:'mediumDate') : 'مؤخراً' }}
+                    </span>
+                  </div>
 
-            <!-- Instructor Reply Display -->
-            @if (rev.instructorReply) {
-              <div class="mr-6 p-4 rounded-xl bg-primary-container/10 border-r-4 border-primary space-y-1">
-                <div class="flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <span class="material-symbols-outlined text-sm">verified</span>
-                  <span>رد المحاضر / إدارة المنصة:</span>
+                  <p class="text-xs sm:text-sm text-on-surface leading-relaxed">
+                    "{{ rev.comment }}"
+                  </p>
                 </div>
-                <p class="text-xs text-on-surface leading-relaxed">{{ rev.instructorReply }}</p>
-              </div>
-            } @else if (canManageReviews() && replyingReviewId !== rev.id) {
-              <div class="flex justify-end">
-                <button
-                  (click)="openReplyForm(rev.id)"
-                  class="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span class="material-symbols-outlined text-sm">reply</span>
-                  <span>الرد على هذا التقييم</span>
-                </button>
-              </div>
-            }
 
-            <!-- Reply Form (For Instructor/Admin) -->
-            @if (replyingReviewId === rev.id) {
-              <div class="mr-6 p-4 rounded-xl bg-surface-container space-y-3 border border-outline-variant">
-                <label class="block text-xs font-bold text-on-surface">كتابة رد المحاضر:</label>
-                <textarea
-                  [(ngModel)]="replyContent"
-                  rows="2"
-                  placeholder="أدخل ردك التوضيحي للطالب..."
-                  class="w-full px-3 py-2 rounded-xl border border-outline-variant bg-surface text-xs focus:outline-none focus:border-primary"
-                ></textarea>
-                <div class="flex items-center justify-end gap-2">
-                  <button (click)="cancelReply()" class="px-3 py-1 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high">
-                    إلغاء
-                  </button>
-                  <button
-                    (click)="submitReply(rev.id)"
-                    [disabled]="submittingReply"
-                    class="px-4 py-1 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 transition-all"
-                  >
-                    نشر الرد
-                  </button>
+                <div class="flex items-center gap-2 pt-2 border-t border-outline-variant/40">
+                  <div class="w-6 h-6 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                    {{ (rev.userFullName || rev.userName || 'ط').charAt(0) }}
+                  </div>
+                  <span class="text-xs font-bold text-on-surface truncate">
+                    {{ rev.userFullName || rev.userName || 'طالب مسجل' }}
+                  </span>
                 </div>
+              </div>
+            } @empty {
+              <div class="col-span-full text-center py-8 text-on-surface-variant text-xs sm:text-sm bg-surface rounded-2xl border border-outline-variant/50">
+                لا توجد تقييمات مسجلة لهذه الدورة حتى الآن. كن أول من يقيّمها!
               </div>
             }
           </div>
-        } @empty {
-          <div class="text-center py-8 text-on-surface-variant text-sm font-body-md">
-            لا توجد تقييمات مسجلة لهذه الدورة حتى الآن. كن أول من يقيّمها!
-          </div>
-        }
+        </div>
+
       </div>
+
+      <!-- Left Column: Course Preview Card & Purchase Action (4 cols in RTL) -->
+      <div class="lg:col-span-4 lg:sticky lg:top-24 space-y-5">
+        
+        <!-- Clean Image Card -->
+        <div class="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-outline-variant/80 shadow-md space-y-4 sm:space-y-5">
+          <!-- Thumbnail Container -->
+          <div class="w-full aspect-video rounded-xl sm:rounded-2xl overflow-hidden border border-outline-variant/60 bg-surface-container flex items-center justify-center shadow-2xs">
+            @if (course.imageUrl && !imageError) {
+              <img
+                [src]="course.imageUrl"
+                [alt]="course.title"
+                (error)="onImageError()"
+                class="w-full h-full object-cover"
+              />
+            } @else {
+              <div class="w-full h-full bg-gradient-to-tr from-slate-900 via-teal-950 to-slate-900 flex flex-col items-center justify-center p-4 text-center">
+                <span class="material-symbols-outlined text-4xl sm:text-5xl text-primary mb-2">school</span>
+                <span class="text-white text-xs font-bold line-clamp-1">{{ course.title }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Price & Action Section -->
+          <div class="space-y-3 sm:space-y-4 pt-1">
+            <div class="flex items-baseline justify-between">
+              <div>
+                @if (course.price > 0) {
+                  <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-on-surface">{{ course.price }}</span>
+                    <span class="text-xs sm:text-sm font-bold text-on-surface-variant">ج.م</span>
+                  </div>
+                  <span class="text-xs text-on-surface-variant line-through block mt-0.5">
+                    {{ (course.price * 1.5) | number:'1.0-0' }} ج.م
+                  </span>
+                } @else {
+                  <div class="text-xl sm:text-2xl font-extrabold text-emerald-600">دورة مجانية بالكامل</div>
+                  <span class="text-xs text-emerald-600/80 font-medium">وصول دائم ومفتوح</span>
+                }
+              </div>
+
+              @if (course.price > 0) {
+                <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 text-xs font-bold border border-amber-500/30">
+                  خصم 33%
+                </span>
+              }
+            </div>
+
+            <!-- Enrollment Error Message -->
+            @if (enrollErrorMessage) {
+              <div class="p-3 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs font-semibold">
+                {{ enrollErrorMessage }}
+              </div>
+            }
+
+            <!-- Main CTA Button -->
+            <div>
+              @if (isEnrolled) {
+                <a
+                  [routerLink]="['/learning', course.id]"
+                  class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                >
+                  <span class="material-symbols-outlined text-lg">play_circle</span>
+                  <span>الدخول ومتابعة التعلم</span>
+                </a>
+              } @else if (course.price > 0) {
+                <a
+                  [routerLink]="['/checkout', course.id]"
+                  class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                >
+                  <span class="material-symbols-outlined text-lg">shopping_cart</span>
+                  <span>شراء الدورة ({{ course.price }} ج.م)</span>
+                </a>
+              } @else {
+                <button
+                  type="button"
+                  [disabled]="enrolling"
+                  (click)="enrollFree()"
+                  class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                >
+                  <span class="material-symbols-outlined text-lg">check_circle</span>
+                  <span>{{ enrolling ? 'جاري التسجيل...' : 'التسجيل المجاني في الدورة' }}</span>
+                </button>
+              }
+            </div>
+
+            <!-- Highlights Checklist -->
+            <div class="pt-3 sm:pt-4 border-t border-outline-variant/60 space-y-2 text-xs text-on-surface">
+              <span class="font-bold block text-on-surface mb-2">تشمل هذه الدورة:</span>
+              <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-emerald-600 text-base">check</span>
+                <span>{{ course.estimatedDurationHours || 12 }} ساعة تدريبية مسجلة</span>
+              </div>
+              <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-emerald-600 text-base">check</span>
+                <span>{{ lessons.length }} دروس تعليمية وتطبيقية</span>
+              </div>
+              <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-emerald-600 text-base">check</span>
+                <span>شهادة إتمام معتمدة بعد الانتهاء</span>
+              </div>
+              <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-emerald-600 text-base">check</span>
+                <span>إمكانية المشاهدة عبر الحاسوب والهاتف</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   }
 </div>

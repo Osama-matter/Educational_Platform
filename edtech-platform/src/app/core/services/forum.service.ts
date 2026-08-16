@@ -10,18 +10,33 @@ export class ForumService {
   private base = environment.apiBaseUrl;
 
   getThreads(courseId?: string): Observable<ForumThreadDto[]> {
-    const url = courseId
-      ? `${this.base}/ForumThreads/course/${courseId}`
-      : `${this.base}/ForumThreads`;
-    return this.http.get<ForumThreadDto[]>(url);
+    return this.http.get<ForumThreadDto[]>(`${this.base}/ForumThreads`);
   }
 
   getThreadById(id: string): Observable<ForumThreadDto> {
     return this.http.get<ForumThreadDto>(`${this.base}/ForumThreads/${id}`);
   }
 
-  createThread(dto: Partial<ForumThreadDto>): Observable<ForumThreadDto> {
-    return this.http.post<ForumThreadDto>(`${this.base}/ForumThreads`, dto);
+  createThread(dto: Partial<ForumThreadDto> & { description?: string }): Observable<ForumThreadDto> {
+    const payload = {
+      title: dto.title,
+      description: dto.content || dto.description,
+      content: dto.content || dto.description
+    };
+    return this.http.post<ForumThreadDto>(`${this.base}/ForumThreads`, payload);
+  }
+
+  updateThread(id: string, dto: { title: string; content: string }): Observable<ForumThreadDto> {
+    const payload = {
+      title: dto.title,
+      description: dto.content,
+      content: dto.content
+    };
+    return this.http.put<ForumThreadDto>(`${this.base}/ForumThreads/${id}`, payload);
+  }
+
+  deleteThread(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/ForumThreads/${id}`);
   }
 
   getPosts(threadId: string): Observable<ForumPostDto[]> {
@@ -29,7 +44,19 @@ export class ForumService {
   }
 
   createPost(threadId: string, content: string): Observable<ForumPostDto> {
-    return this.http.post<ForumPostDto>(`${this.base}/ForumPosts`, { threadId, content });
+    return this.http.post<ForumPostDto>(`${this.base}/ForumPosts`, {
+      threadId,
+      forumThreadId: threadId,
+      content
+    });
+  }
+
+  updatePost(id: string, content: string): Observable<ForumPostDto> {
+    return this.http.put<ForumPostDto>(`${this.base}/ForumPosts/${id}`, { content });
+  }
+
+  deletePost(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/ForumPosts/${id}`);
   }
 
   voteThread(threadId: string, isUpvote: boolean): Observable<void> {

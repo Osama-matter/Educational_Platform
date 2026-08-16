@@ -23,8 +23,10 @@ namespace EducationalPlatform.Infrastructure.Repositories
         {
             var course = await _context.Courses
                 .AsNoTracking()
+                .Include(c => c.Instructor)
                 .Include(c => c.Lessons)
                 .Include(c => c.CourseFiles)
+                .Include(c => c.Enrollments)
                 .Include(c => c.Reviews)
                     .ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -42,7 +44,13 @@ namespace EducationalPlatform.Infrastructure.Repositories
 
         public async Task<IEnumerable<Course>> GetAllAsync()
         {
-            return await _context.Courses.ToListAsync();
+            return await _context.Courses
+                .AsNoTracking()
+                .Include(c => c.Instructor)
+                .Include(c => c.Reviews)
+                .Include(c => c.Lessons)
+                .Include(c => c.Enrollments)
+                .ToListAsync();
         }
 
         public async Task AddAsync(Course course)
@@ -64,7 +72,7 @@ namespace EducationalPlatform.Infrastructure.Repositories
                 .Include(c => c.CourseFiles)
                 .Include(c => c.Reviews)
                 .Include(c => c.Lessons)
-                    .ThenInclude(l => l.Progresses)
+                    .ThenInclude(l => l.LessonProgresses)
                 .Include(c => c.Lessons)
                     .ThenInclude(l => l.Quizzes)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -87,9 +95,9 @@ namespace EducationalPlatform.Infrastructure.Repositories
                 {
                     foreach (var lesson in course.Lessons)
                     {
-                        if (lesson.Progresses?.Count > 0)
+                        if (lesson.LessonProgresses?.Count > 0)
                         {
-                            _context.LessonProgresses.RemoveRange(lesson.Progresses);
+                            _context.LessonProgresses.RemoveRange(lesson.LessonProgresses);
                         }
                         if (lesson.Quizzes?.Count > 0)
                         {

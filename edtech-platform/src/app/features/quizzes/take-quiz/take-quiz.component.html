@@ -1,25 +1,202 @@
-<div class="max-w-4xl mx-auto px-4 py-10 text-right">
+<div class="max-w-4xl mx-auto px-4 py-8 text-right space-y-6">
   @if (loading) {
-    <div class="p-12 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
-      <div class="inline-block animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
-      <p class="text-on-surface-variant text-sm font-label-md">جاري تحميل أسئلة الاختبار...</p>
+    <div class="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+      <div class="inline-block animate-spin w-9 h-9 border-4 border-teal-600 border-t-transparent rounded-full mb-1"></div>
+      <p class="text-slate-600 text-sm font-bold">جاري تحميل بيانات الاختبار...</p>
     </div>
   } @else if (errorMessage) {
-    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-2xl text-error space-y-3">
-      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+    <div class="p-8 text-center bg-rose-50 border border-rose-200 rounded-3xl text-rose-700 space-y-4">
+      <span class="material-symbols-outlined text-4xl text-rose-500">error</span>
       <p class="font-bold text-base">{{ errorMessage }}</p>
-      <app-button variant="outline" (onClick)="loadQuiz()">إعادة المحاولة</app-button>
+      <div class="flex justify-center gap-3">
+        <button
+          type="button"
+          (click)="goBack()"
+          class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 cursor-pointer"
+        >
+          العودة للدرس
+        </button>
+        <button
+          type="button"
+          (click)="loadQuiz()"
+          class="px-5 py-2.5 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 cursor-pointer"
+        >
+          إعادة المحاولة
+        </button>
+      </div>
     </div>
-  } @else {
-    <!-- Timer & Quiz Header -->
-    <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="font-headline-lg text-2xl font-bold text-on-surface mb-1">{{ quiz?.title || 'اختبار التقييم' }}</h1>
-        <p class="font-caption text-on-surface-variant text-xs">درجة النجاح المطلوبة: {{ quiz?.passingScorePercent || 70 }}%</p>
+  } @else if (quizResult) {
+    <!-- Final Quiz Result Scoreboard View -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center space-y-6 shadow-sm animate-in fade-in duration-300">
+      <div
+        class="w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-md"
+        [ngClass]="quizResult.passed ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
+      >
+        <span class="material-symbols-outlined text-4xl">
+          {{ quizResult.passed ? 'verified' : 'cancel' }}
+        </span>
       </div>
 
-      <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-container/20 text-secondary font-mono font-bold text-lg">
-        <span class="material-symbols-outlined text-xl">timer</span>
+      <div class="space-y-1">
+        <span
+          class="px-3.5 py-1 rounded-full text-xs font-bold inline-block mb-1"
+          [ngClass]="quizResult.passed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'"
+        >
+          {{ quizResult.passed ? 'تهانينا! لقد اجتزت الاختبار بنجاح' : 'لم تتمكن من اجتياز الاختبار هذه المرة' }}
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">{{ quiz?.title }}</h2>
+        <p class="text-xs text-slate-500">تم تسجيل واعتماد نتيجتك في سجلك التعليمي</p>
+      </div>
+
+      <!-- Score Metrics Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto text-center pt-2">
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">النسبة المئوية</span>
+          <span
+            class="font-extrabold font-mono text-xl sm:text-2xl"
+            [ngClass]="quizResult.passed ? 'text-emerald-600' : 'text-rose-600'"
+          >
+            {{ quizResult.scorePercent }}%
+          </span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">درجتك المحققة</span>
+          <span class="font-extrabold text-slate-800 font-mono text-xl sm:text-2xl">
+            {{ quizResult.earnedScore }} / {{ quizResult.totalScore }}
+          </span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">درجة النجاح</span>
+          <span class="font-extrabold text-slate-700 font-mono text-xl sm:text-2xl">
+            {{ quizResult.passingScore }}%
+          </span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">الأسئلة المجابة</span>
+          <span class="font-extrabold text-slate-800 font-mono text-xl sm:text-2xl">
+            {{ quizResult.answeredQuestions }} / {{ quizResult.totalQuestions }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Feedback Banner -->
+      <div
+        class="rounded-2xl p-4 text-xs font-semibold max-w-xl mx-auto text-right"
+        [ngClass]="quizResult.passed ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' : 'bg-rose-50 text-rose-800 border border-rose-200/60'"
+      >
+        @if (quizResult.passed) {
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
+            <span>ممتاز! لقد حققت نسبة النجاح المطلوبة ويمكنك الانتقال للدرس التالي ومواصلة الدورة.</span>
+          </div>
+        } @else {
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-rose-600">info</span>
+            <span>لم تحقق درجة النجاح المطلوبة ({{ quizResult.passingScore }}%). نوصي بمراجعة محتوى الدرس والمحاولة مرة أخرى.</span>
+          </div>
+        }
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+        <button
+          type="button"
+          (click)="retakeQuiz()"
+          class="w-full sm:w-auto px-6 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+        >
+          إعادة الاختبار
+        </button>
+
+        <button
+          type="button"
+          (click)="goBack()"
+          class="w-full sm:w-auto px-8 py-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm transition-colors cursor-pointer shadow-sm"
+        >
+          العودة إلى محتوى الدرس
+        </button>
+      </div>
+    </div>
+  } @else if (!quizStarted) {
+    <!-- Pre-Quiz Overview & Instructions Screen -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm space-y-8 animate-in fade-in duration-200">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-3xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-3 shadow-xs">
+          <span class="material-symbols-outlined text-3xl">quiz</span>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold inline-block">اختبار تقييمي رسمي</span>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">{{ quiz?.title || 'اختبار التقييم' }}</h1>
+        <p class="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+          {{ quiz?.description || 'اختبر فهمك لمخرجات التعلم والمفاهيم الأساسية الخاصة بالدرس.' }}
+        </p>
+      </div>
+
+      <!-- Key Info Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">المدة المحددة</span>
+          <span class="font-extrabold text-slate-900 font-mono text-base sm:text-lg">{{ quiz?.durationMinutes || 20 }} دقيقة</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">عدد الأسئلة</span>
+          <span class="font-extrabold text-slate-900 font-mono text-base sm:text-lg">{{ questions.length }} سؤال</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">درجة النجاح</span>
+          <span class="font-extrabold text-emerald-600 font-mono text-base sm:text-lg">{{ quiz?.passingScore || 70 }}%</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <span class="text-[11px] text-slate-400 block mb-1">الدرجة الكلية</span>
+          <span class="font-extrabold text-slate-900 font-mono text-base sm:text-lg">{{ quiz?.totalScore || 100 }}</span>
+        </div>
+      </div>
+
+      <!-- Warning & Examination Rules Alert -->
+      <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 space-y-2 text-right">
+        <div class="flex items-center gap-2 text-amber-700 font-bold text-sm">
+          <span class="material-symbols-outlined text-lg">warning</span>
+          <span>تعليمات وتنبيهات هامة قبل البدء:</span>
+        </div>
+        <ul class="text-xs text-amber-900/80 space-y-1.5 list-disc list-inside leading-relaxed pr-1">
+          <li>بمجرد الضغط على زر <strong>"بدء الاختبار وتشغيل المؤقت"</strong> سيبدأ العداد التنازلي فوراً.</li>
+          <li>إذا قمت بإعادة تحميل الصفحة أو الخروج، سيتم الحفاظ على إجاباتك والمؤقت في الجلسة النشطة.</li>
+          <li>عند انتهاء الوقت سيتم تسليم الإجابات المحددة تلقائياً وحساب نتيجتك.</li>
+        </ul>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <button
+          type="button"
+          (click)="goBack()"
+          class="w-full sm:w-auto px-6 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors cursor-pointer text-center"
+        >
+          العودة إلى الدرس
+        </button>
+
+        <button
+          type="button"
+          (click)="startQuizNow()"
+          class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-xl">play_arrow</span>
+          <span>بدء الاختبار وتشغيل المؤقت</span>
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- In-Progress Quiz View with Timer -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 font-bold text-xs">جاري الاختبار</span>
+          <span class="text-xs text-slate-400">إجمالي الأسئلة: {{ questions.length }}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 leading-snug">{{ quiz?.title || 'اختبار التقييم' }}</h1>
+        <p class="text-xs text-slate-500">درجة النجاح المطلوبة: {{ quiz?.passingScore || 70 }}%</p>
+      </div>
+
+      <div class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-amber-500/10 text-amber-600 font-mono font-extrabold text-xl self-start sm:self-auto shrink-0 border border-amber-500/20">
+        <span class="material-symbols-outlined text-2xl">timer</span>
         <span>{{ formatTime(secondsLeft) }}</span>
       </div>
     </div>
@@ -27,16 +204,23 @@
     <!-- Question Cards -->
     <div class="space-y-6">
       @for (q of questions; track q.id; let idx = $index) {
-        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm">
-          <h3 class="font-headline-md text-lg font-bold text-on-surface mb-4">
-            السؤال {{ idx + 1 }}: {{ q.questionText }}
+        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+          <div class="flex items-center justify-between">
+            <span class="px-3 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs font-mono">
+              سؤال {{ idx + 1 }} من {{ questions.length }}
+            </span>
+            <span class="text-xs font-mono text-slate-400 font-medium">الدرجة: {{ q.score || q.points || 10 }}</span>
+          </div>
+
+          <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
+            {{ q.content || q.text || q.questionText || ('سؤال رقم ' + (idx + 1)) }}
           </h3>
 
-          <div class="space-y-3">
-            @for (opt of q.options; track opt.id) {
+          <div class="space-y-3 pt-1">
+            @for (opt of q.options; track (opt.id || $index)) {
               <label
-                class="flex items-center gap-3 p-4 rounded-xl border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-all"
-                [ngClass]="answers.get(q.id) === opt.id ? 'bg-primary-container/20 border-primary font-semibold' : ''"
+                class="flex items-center gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer"
+                [ngClass]="answers.get(q.id) === opt.id ? 'bg-teal-50/80 border-teal-600 ring-2 ring-teal-600/20 font-bold text-teal-900' : 'bg-slate-50/60 border-slate-200/80 hover:bg-slate-100/80 text-slate-800'"
               >
                 <input
                   type="radio"
@@ -44,25 +228,54 @@
                   [value]="opt.id"
                   [checked]="answers.get(q.id) === opt.id"
                   (change)="selectOption(q.id, opt.id)"
-                  class="text-primary focus:ring-primary h-4 w-4"
+                  class="w-4 h-4 text-teal-600 focus:ring-teal-500 cursor-pointer"
                 />
-                <span class="font-body-md text-on-surface text-sm">{{ opt.optionText }}</span>
+                <span class="text-xs sm:text-sm leading-relaxed">{{ opt.text || opt.optionText || 'خيار الإجابة' }}</span>
               </label>
+            } @empty {
+              <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-400 text-center">
+                لا توجد خيارات متاحة لهذا السؤال.
+              </div>
             }
           </div>
         </div>
       } @empty {
-        <div class="p-8 text-center bg-surface-container-lowest rounded-2xl border border-outline-variant">
-          <p class="text-on-surface-variant text-sm">لا تتوفر أسئلة لهذا الاختبار حالياً.</p>
+        <div class="p-12 text-center bg-white rounded-3xl border border-slate-200/80 space-y-3">
+          <span class="material-symbols-outlined text-4xl text-slate-300">quiz</span>
+          <p class="text-slate-700 text-sm font-bold">لا تتوفر أسئلة مضافة لهذا الاختبار حالياً.</p>
+          <p class="text-xs text-slate-400">يمكنك العودة إلى الدرس أو إضافة أسئلة من لوحة التحكم.</p>
+          <div class="pt-3">
+            <button
+              type="button"
+              (click)="goBack()"
+              class="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 transition-colors cursor-pointer"
+            >
+              العودة إلى الدرس
+            </button>
+          </div>
         </div>
       }
     </div>
 
-    <div class="mt-8 flex justify-end">
-      <app-button variant="primary" icon="send" [loading]="submitting" (onClick)="submitQuiz()">
-        تسليم الاختبار والإجابات
-      </app-button>
-    </div>
+    @if (questions.length > 0) {
+      <div class="mt-8 flex items-center justify-between pt-2">
+        <button
+          type="button"
+          (click)="goBack()"
+          class="px-5 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
+        >
+          إلغاء والعودة
+        </button>
+
+        <app-button
+          variant="primary"
+          icon="send"
+          [loading]="submitting"
+          (onClick)="submitQuiz()"
+        >
+          تسليم الإجابات وإنهاء الاختبار
+        </app-button>
+      </div>
+    }
   }
 </div>
-

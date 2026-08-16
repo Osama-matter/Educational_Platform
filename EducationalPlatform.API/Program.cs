@@ -26,18 +26,23 @@ builder.Logging.AddConsole();
 // -------------------- CORS --------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.WithOrigins(
+            "http://localhost:4200",
+            "http://127.0.0.1:4200",
+            "https://localhost:4200",
+            "https://matterhubfrontend.runasp.net"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
-
-// -------------------- Controllers --------------------
+// -------------------- Controllers & Cache --------------------
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
 // -------------------- Swagger --------------------
@@ -45,39 +50,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Educational Platform API", Version = "v1" });
-
-    // Add JWT Bearer support in Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "Enter JWT token here. Example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
 });
 
 // -------------------- Dependency Injection --------------------
+builder.Services.AddScoped<IUserSessionManager, UserSessionManager>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
-builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddIdentityCore<EducationalPlatform.Domain.Entities.User>(options =>
 {
@@ -93,35 +72,30 @@ builder.Services.AddIdentityCore<EducationalPlatform.Domain.Entities.User>(optio
 
 // -------------------- Database --------------------
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null
+        )
+    ));
 
 // -------------------- Infrastructure --------------------
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHostedService<WeeklyDigestService>();
 
-// -------------------- Authentication --------------------
+// -------------------- Session Authentication --------------------
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = SessionAuthenticationHandler.SchemeName;
+    options.DefaultChallengeScheme = SessionAuthenticationHandler.SchemeName;
+    options.DefaultScheme = SessionAuthenticationHandler.SchemeName;
 })
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not found."))
-        ),
-        NameClaimType = ClaimTypes.NameIdentifier, // Map subject to user ID
-        RoleClaimType = ClaimTypes.Role // Map role claims
-    };
-});
+.AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+    SessionAuthenticationHandler.SchemeName,
+    _ => { }
+);
 
 // -------------------- Build App --------------------
 var app = builder.Build();
@@ -136,22 +110,8 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty; // Set Swagger as the home page
 });
 
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
 app.UseStaticFiles();
-
-// Enable CORS for static files
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 200;
-        return;
-    }
-    await next();
-});
 
 // app.UseHttpsRedirection();
 
@@ -160,24 +120,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Apply migrations automatically
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        if (context.Database.GetPendingMigrations().Any())
-        {
-            context.Database.Migrate();
-        }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
-    }
-}
+// -------------------- Seed Database --------------------
+await EducationalPlatform.Infrastructure.Data.DatabaseSeeder.SeedAsync(app.Services);
 
 try
 {

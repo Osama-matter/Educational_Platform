@@ -12,9 +12,20 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         authStore.clearSession();
-        router.navigate(['/auth/login']);
+
+        // Avoid redirecting on initial session check or when browsing public routes
+        const isMeCheck = req.url.includes('/Account/me');
+        const currentUrl = router.url;
+        const isPublicRoute =
+          currentUrl === '/' ||
+          currentUrl.startsWith('/catalog') ||
+          currentUrl.startsWith('/auth');
+
+        if (!isMeCheck && !isPublicRoute) {
+          router.navigate(['/auth/login'], { queryParams: { returnUrl: currentUrl } });
+        }
       } else if (error.status === 403) {
-        console.error('Access Denied (403)');
+        console.warn('[Access Denied 403] Insufficient permissions for this resource.');
       }
       return throwError(() => error);
     })

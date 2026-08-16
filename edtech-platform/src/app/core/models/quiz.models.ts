@@ -69,9 +69,14 @@ export interface QuizAttemptDto {
   id: string;
   userId: string;
   quizId: string;
+  quizTitle?: string;
   startedAt: string;
+  submittedAt?: string;
   completedAt?: string;
+  totalScore?: number;
   scorePercent?: number;
+  status?: number;
+  totalTimeMinutes?: number;
   passed?: boolean;
 }
 

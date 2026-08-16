@@ -1,4 +1,4 @@
-﻿using Ardalis.Specification.EntityFrameworkCore;
+using Ardalis.Specification.EntityFrameworkCore;
 using EducationalPlatform.Application.Interfaces.Repositories;
 using EducationalPlatform.Domain.Entities;
 using EducationalPlatform.Infrastructure.Data;
@@ -40,12 +40,21 @@ namespace EducationalPlatform.Infrastructure.Repositories
 
         public async Task<IEnumerable<Enrollment>> GetAllAsync()
         {
-            return await _context.Enrollments.ToListAsync();
+            return await _context.Enrollments
+                .AsNoTracking()
+                .Include(e => e.Course)
+                    .ThenInclude(c => c.Lessons)
+                .Include(e => e.LessonProgresses)
+                .ToListAsync();
         }
 
         public async Task<Enrollment?> GetByIdAsync(Guid id)
         {
             return await _context.Enrollments
+                .AsNoTracking()
+                .Include(e => e.Course)
+                    .ThenInclude(c => c.Lessons)
+                .Include(e => e.LessonProgresses)
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 

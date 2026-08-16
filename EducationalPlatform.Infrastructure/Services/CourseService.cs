@@ -77,6 +77,21 @@ namespace EducationalPlatform.Infrastructure.Services
             {
                 var dto = new CourseDto(c);
                 dto.Image_URl = $"{baseUrl}{c.Image_URl}";
+                var instructorFullName = c.Instructor != null ? $"{c.Instructor.FirstName} {c.Instructor.LastName}".Trim() : string.Empty;
+                dto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
+                    ? instructorFullName
+                    : (!string.IsNullOrEmpty(c.Instructor?.UserName) ? c.Instructor.UserName : dto.InstructorName);
+                if (c.Reviews != null && c.Reviews.Any())
+                {
+                    dto.Reviews = c.Reviews.Select(r => new ReviewDto
+                    {
+                        Id = r.Id,
+                        Rate = r.Rate,
+                        Comment = r.Comment,
+                        UserId = r.UserId,
+                        UserName = r.User?.UserName
+                    }).ToList();
+                }
                 return dto;
             });
 
@@ -94,6 +109,10 @@ namespace EducationalPlatform.Infrastructure.Services
             var baseUrl = $"{request.Scheme}://{request.Host}";
             var courseDto = new CourseDto(course);
             courseDto.Price = course.Price; // Ensure price is set
+            var instructorFullName = course.Instructor != null ? $"{course.Instructor.FirstName} {course.Instructor.LastName}".Trim() : string.Empty;
+            courseDto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
+                ? instructorFullName
+                : (!string.IsNullOrEmpty(course.Instructor?.UserName) ? course.Instructor.UserName : courseDto.InstructorName);
             if (!string.IsNullOrEmpty(course.Image_URl))
             {
                 courseDto.Image_URl = $"{baseUrl}{course.Image_URl}";

@@ -32,7 +32,9 @@ namespace EducationalPlatform.Infrastructure.Repositories
 
         public async Task<IEnumerable<Question>> GetAllAsync()
         {
-            return await _context.Questions.ToListAsync();
+            return await _context.Questions
+                .Include(q => q.Options)
+                .ToListAsync();
         }
 
         public async Task AddAsync(Question question)

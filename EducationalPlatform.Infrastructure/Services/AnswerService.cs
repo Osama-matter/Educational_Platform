@@ -26,23 +26,28 @@ namespace EducationalPlatform.Infrastructure.Services
         public async Task SubmitAnswersAsync(Guid quizAttemptId, SubmitAnswersRequest request)
         {
             var quizAttempt = await _quizAttemptRepository.GetByIdAsync(quizAttemptId);
-            if (quizAttempt == null || quizAttempt.Status != QuizAttemptStatus.InProgress)
+            if (quizAttempt == null)
             {
-                throw new InvalidOperationException("Quiz attempt is not valid or has already been submitted.");
+                throw new InvalidOperationException("Quiz attempt not found.");
             }
 
             var answers = new List<Answer>();
             int totalScore = 0;
 
-            var questionIds = request.Answers.Select(a => a.QuestionId).ToList();  // get question IDs from answers
-            var questions = (await _questionRepository.GetAllAsync()).Where(q => questionIds.Contains(q.Id)).ToList(); // to get questions by IDs
-
-            foreach (var answerDto in request.Answers)  // iterate through submitted answers
+            // Load questions with options for this quiz
+            var questions = (await _questionRepository.GetByQuizIdAsync(quizAttempt.QuizId)).ToList();
+            if (!questions.Any())
             {
-                var question = questions.FirstOrDefault(q => q.Id == answerDto.QuestionId);  // find the corresponding question
-                if (question != null)  // if question exists
+                var questionIds = request.Answers.Select(a => a.QuestionId).ToList();
+                questions = (await _questionRepository.GetAllAsync()).Where(q => questionIds.Contains(q.Id)).ToList();
+            }
+
+            foreach (var answerDto in request.Answers)
+            {
+                var question = questions.FirstOrDefault(q => q.Id == answerDto.QuestionId);
+                if (question != null && question.Options != null)
                 {
-                    var correctAnswer = question.Options.FirstOrDefault(o => o.IsCorrect);   // find the correct option
+                    var correctAnswer = question.Options.FirstOrDefault(o => o.IsCorrect);
                     if (correctAnswer != null && correctAnswer.Id == answerDto.SelectedOptionId)
                     {
                         totalScore += question.Score;

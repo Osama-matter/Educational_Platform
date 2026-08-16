@@ -11,6 +11,7 @@ export interface CourseSummary {
   imageUrl?: string;
   rating?: number;
   totalStudents?: number;
+  enrolledStudentsCount?: number;
   category?: string;
 }
 

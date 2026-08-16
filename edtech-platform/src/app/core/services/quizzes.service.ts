@@ -15,6 +15,10 @@ export class QuizzesService {
     return this.http.get<QuizDto[]>(this.base);
   }
 
+  getByLesson(lessonId: string): Observable<QuizDto[]> {
+    return this.http.get<QuizDto[]>(`${this.base}/lesson/${lessonId}`);
+  }
+
   getByCourse(courseId: string): Observable<QuizDto[]> {
     return this.http.get<QuizDto[]>(`${this.base}/course/${courseId}`);
   }
@@ -31,8 +35,8 @@ export class QuizzesService {
     return this.http.post<string | { id: string }>(this.base, dto);
   }
 
-  update(quizId: string, dto: Partial<CreateQuizDto>): Observable<string> {
-    return this.http.put(`${this.base}/${quizId}`, dto, { responseType: 'text' });
+  update(quizId: string, dto: Partial<CreateQuizDto>): Observable<any> {
+    return this.http.put(`${this.base}/${quizId}`, dto);
   }
 
   delete(quizId: string): Observable<void> {
@@ -57,6 +61,10 @@ export class QuizzesService {
   }
 
   // Question Options APIs
+  getOptionsByQuestion(questionId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.optionsBase}/question/${questionId}`);
+  }
+
   createOption(dto: CreateQuestionOptionDto): Observable<any> {
     return this.http.post(this.optionsBase, dto);
   }

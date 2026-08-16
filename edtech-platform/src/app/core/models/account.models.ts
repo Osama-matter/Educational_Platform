@@ -12,9 +12,11 @@ export interface LoginDto {
 }
 
 export interface UserDto {
+  id: string;
+  username: string;
   email: string;
-  token: string;
-  username?: string;
+  firstName?: string;
+  lastName?: string;
   roles?: string[];
 }
 

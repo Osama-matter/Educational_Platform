@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CoursesService } from '../../../core/services/courses.service';
 import { LessonsService } from '../../../core/services/lessons.service';
 import { CourseFilesService } from '../../../core/services/course-files.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { CourseSummary, CreateCourseDto, UpdateCourseDto } from '../../../core/models/course.models';
 import { LessonDto, CreateLessonDto, CourseFileDto } from '../../../core/models/lesson.models';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
@@ -20,6 +21,7 @@ export class CourseEditorComponent implements OnInit {
   private coursesService = inject(CoursesService);
   private lessonsService = inject(LessonsService);
   private courseFilesService = inject(CourseFilesService);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   courses: CourseSummary[] = [];
@@ -201,19 +203,26 @@ export class CourseEditorComponent implements OnInit {
     }
   }
 
-  deleteCourse(id: string): void {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذه الدورة؟')) {
-      this.coursesService.delete(id).subscribe({
-        next: () => {
-          this.courses = this.courses.filter(c => c.id !== id);
-          if (this.expandedCourseId === id) {
-            this.expandedCourseId = null;
-          }
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل حذف الدورة من الخادم.')
-      });
-    }
+  async deleteCourse(id: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف الدورة',
+      message: 'هل أنت متأكد من رغبتك في حذف هذه الدورة؟ سيتم حذف كافة الدروس والملفات التابعة لها.',
+      confirmText: 'حذف الدورة',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.coursesService.delete(id).subscribe({
+      next: () => {
+        this.courses = this.courses.filter(c => c.id !== id);
+        if (this.expandedCourseId === id) {
+          this.expandedCourseId = null;
+        }
+        this.toast.success('تم حذف الدورة بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل حذف الدورة من الخادم.')
+    });
   }
 
   // --- Lesson Operations ---
@@ -221,7 +230,7 @@ export class CourseEditorComponent implements OnInit {
     this.editingLessonId = null;
     const targetCourse = course || (this.courses.length > 0 ? this.courses[0] : null);
     if (!targetCourse) {
-      alert('يرجى إنشاء دورة أولاً قبل إضافة الدروس.');
+      this.toast.warning('يرجى إنشاء دورة أولاً قبل إضافة الدروس.');
       return;
     }
 
@@ -367,24 +376,31 @@ export class CourseEditorComponent implements OnInit {
     });
   }
 
-  deleteLesson(courseId: string, lessonId: string): void {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذا الدرس؟')) {
-      this.deletingLessonId = lessonId;
-      this.lessonsService.delete(lessonId).subscribe({
-        next: () => {
-          if (this.courseLessons[courseId]) {
-            this.courseLessons[courseId] = this.courseLessons[courseId].filter(l => l.id !== lessonId);
-          }
-          this.deletingLessonId = null;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.deletingLessonId = null;
-          alert('فشل حذف الدرس من الخادم.');
-          this.cdr.markForCheck();
+  async deleteLesson(courseId: string, lessonId: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف الدرس',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا الدرس؟',
+      confirmText: 'حذف الدرس',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.deletingLessonId = lessonId;
+    this.lessonsService.delete(lessonId).subscribe({
+      next: () => {
+        if (this.courseLessons[courseId]) {
+          this.courseLessons[courseId] = this.courseLessons[courseId].filter(l => l.id !== lessonId);
         }
-      });
-    }
+        this.deletingLessonId = null;
+        this.toast.success('تم حذف الدرس بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.deletingLessonId = null;
+        this.toast.error('فشل حذف الدرس من الخادم.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   // --- Course Files Operations ---
@@ -454,11 +470,12 @@ export class CourseEditorComponent implements OnInit {
         this.uploadingFile = false;
         this.selectedFileToUpload = null;
         this.courseFiles.unshift(uploaded);
+        this.toast.success('تم رفع الملف بنجاح');
         this.cdr.markForCheck();
       },
       error: () => {
         this.uploadingFile = false;
-        alert('فشل رفع الملف إلى الخادم.');
+        this.toast.error('فشل رفع الملف إلى الخادم.');
         this.cdr.markForCheck();
       }
     });
@@ -473,19 +490,26 @@ export class CourseEditorComponent implements OnInit {
     if (url) {
       window.open(url, '_blank');
     } else {
-      alert('رابط الملف غير متوفر.');
+      this.toast.error('رابط الملف غير متوفر.');
     }
   }
 
-  deleteFile(fileId: string): void {
-    if (confirm('هل أنت متأكد من حذف هذا الملف؟')) {
-      this.courseFilesService.delete(fileId).subscribe({
-        next: () => {
-          this.courseFiles = this.courseFiles.filter(f => f.id !== fileId);
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل حذف الملف.')
-      });
-    }
+  async deleteFile(fileId: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف الملف',
+      message: 'هل أنت متأكد من حذف هذا الملف؟',
+      confirmText: 'حذف الملف',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.courseFilesService.delete(fileId).subscribe({
+      next: () => {
+        this.courseFiles = this.courseFiles.filter(f => f.id !== fileId);
+        this.toast.success('تم حذف الملف بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل حذف الملف.')
+    });
   }
 }

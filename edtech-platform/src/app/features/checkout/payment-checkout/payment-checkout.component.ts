@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -21,10 +21,11 @@ export class PaymentCheckoutComponent implements OnInit {
   private coursesService = inject(CoursesService);
   private fawaterakService = inject(FawaterakService);
   private authStore = inject(AuthStore);
+  private cdr = inject(ChangeDetectorRef);
 
   courseId = this.route.snapshot.paramMap.get('courseId') || '';
   course: CourseSummary | null = null;
-  customerName = '';
+  customerName = this.authStore.currentUser()?.username || '';
   customerEmail = this.authStore.currentUser()?.email || '';
   customerPhone = '';
   loadingCourse = true;
@@ -36,6 +37,7 @@ export class PaymentCheckoutComponent implements OnInit {
     if (!this.courseId) {
       this.errorMessage = 'معرف الدورة غير صحيح.';
       this.loadingCourse = false;
+      this.cdr.markForCheck();
       return;
     }
     this.loadCourse();
@@ -44,15 +46,18 @@ export class PaymentCheckoutComponent implements OnInit {
   loadCourse(): void {
     this.loadingCourse = true;
     this.errorMessage = null;
+    this.cdr.markForCheck();
 
     this.coursesService.getById(this.courseId).subscribe({
       next: (res) => {
         this.course = res;
         this.loadingCourse = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loadingCourse = false;
-        this.errorMessage = 'تعذر جلب تفاصيل الدورة لإتمام عملية الشراء.';
+        this.errorMessage = 'تعذر جلب تفاصيل الدورة لإتمام عملية الشراء. يرجى التأكد من تشغيل خادم الـ API.';
+        this.cdr.markForCheck();
       }
     });
   }

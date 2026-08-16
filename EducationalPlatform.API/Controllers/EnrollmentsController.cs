@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.API.Routes;
+using EducationalPlatform.API.Routes;
 using EducationalPlatform.Application.DTOs.FawaterkDTO;
 using EducationalPlatform.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
@@ -50,7 +50,15 @@ namespace EducationalPlatform.API.Controllers
         [HttpGet(Routes.Routes.Enrollments.GetAllEnrollments)]
         public async Task<ActionResult<IEnumerable<EducationalPlatform.Application.DTOs.Enrollments.EnrollmentDto>>> GetAll()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isStudent = User.IsInRole("Student") || !User.IsInRole("Admin");
             var result = await _enrollmentService.GetAllAsync();
+
+            if (!string.IsNullOrEmpty(userId) && isStudent && Guid.TryParse(userId, out var studentGuid))
+            {
+                result = result.Where(e => e.StudentId == studentGuid);
+            }
+
             return Ok(result);
         }
 

@@ -126,6 +126,29 @@
         </button>
       </div>
 
+      <!-- Dynamic Lesson Quiz Assessment Banner (if lesson has quizzes) -->
+      @if (lessonQuizzes.length > 0) {
+        <div class="bg-gradient-to-l from-teal-900 via-teal-800 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-right">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold text-xs">اختبار تقييمي للدرس</span>
+              <span class="text-xs text-white/70">{{ lessonQuizzes[0].durationMinutes || 20 }} دقيقة</span>
+            </div>
+            <h3 class="text-lg sm:text-xl font-bold text-white leading-snug">{{ lessonQuizzes[0].title }}</h3>
+            <p class="text-xs text-white/80 line-clamp-1">{{ lessonQuizzes[0].description || 'اختبر معلوماتك واستيعابك لمفاهيم هذا الدرس.' }}</p>
+          </div>
+
+          <button
+            type="button"
+            (click)="startQuiz(lessonQuizzes[0].id, lessonQuizzes[0].title, lessonQuizzes[0].durationMinutes)"
+            class="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shrink-0 shadow-lg hover:shadow-xl transition-all cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-xl">quiz</span>
+            <span>بدء الاختبار الآن</span>
+          </button>
+        </div>
+      }
+
       <!-- Tabs Navigation Bar -->
       <div class="border-b border-slate-200 flex items-center justify-start gap-8 text-sm font-bold overflow-x-auto no-scrollbar pt-2">
         <button
@@ -135,6 +158,20 @@
         >
           <span>محتوى الدرس</span>
           @if (activeTab === 'content') {
+            <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
+          }
+        </button>
+
+        <button
+          (click)="activeTab = 'quizzes'"
+          class="pb-3 px-1 transition-all relative whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+          [ngClass]="activeTab === 'quizzes' ? 'text-teal-700' : 'text-slate-500 hover:text-slate-800'"
+        >
+          <span>الاختبارات</span>
+          @if (lessonQuizzes.length > 0) {
+            <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">{{ lessonQuizzes.length }}</span>
+          }
+          @if (activeTab === 'quizzes') {
             <span class="absolute bottom-0 inset-x-0 h-0.5 bg-teal-700 rounded-full"></span>
           }
         </button>
@@ -224,6 +261,61 @@
         </div>
       }
 
+      <!-- Tab: Quizzes (اختبارات الدرس) -->
+      @if (activeTab === 'quizzes') {
+        <div class="space-y-4 animate-in fade-in duration-200">
+          @if (loadingQuizzes) {
+            <div class="py-12 text-center text-xs text-slate-400">جاري تحميل اختبارات الدرس...</div>
+          } @else {
+            @for (quiz of lessonQuizzes; track quiz.id) {
+              <div class="bg-white rounded-3xl border border-slate-200/80 p-6 text-right space-y-4 shadow-xs hover:shadow-md transition-shadow">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
+                        <span class="material-symbols-outlined text-lg">quiz</span>
+                      </span>
+                      <h4 class="font-bold text-lg text-slate-900">{{ quiz.title }}</h4>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">{{ quiz.description || 'اختبار تقييمي لقياس فهم المخرجات التعليمية الخاصة بهذا الدرس.' }}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="startQuiz(quiz.id, quiz.title, quiz.durationMinutes)"
+                    class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shrink-0 transition-colors cursor-pointer"
+                  >
+                    <span class="material-symbols-outlined text-base">play_arrow</span>
+                    <span>بدء الاختبار</span>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center text-xs">
+                  <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] mb-0.5">مدة الاختبار</span>
+                    <span class="font-bold text-slate-800 font-mono">{{ quiz.durationMinutes || 20 }} دقيقة</span>
+                  </div>
+                  <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] mb-0.5">درجة النجاح</span>
+                    <span class="font-bold text-slate-800 font-mono">{{ quiz.passingScore || 70 }}%</span>
+                  </div>
+                  <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] mb-0.5">الدرجة الكلية</span>
+                    <span class="font-bold text-slate-800 font-mono">{{ quiz.totalScore || 100 }}</span>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="py-12 bg-white rounded-3xl border border-slate-200/80 text-center space-y-2 p-6">
+                <span class="material-symbols-outlined text-4xl text-slate-300">task_alt</span>
+                <p class="text-xs font-bold text-slate-600">لا يوجد اختبار تقييمي مخصص لهذا الدرس حالياً.</p>
+                <p class="text-[11px] text-slate-400">يمكنك متابعة الدرس القادم وإكمال مسار الدورة بنجاح.</p>
+              </div>
+            }
+          }
+        </div>
+      }
+
       <!-- Tab 2: Real Q&A (الأسئلة والأجوبة) -->
       @if (activeTab === 'qa') {
         <div class="space-y-5 animate-in fade-in duration-200">
@@ -254,23 +346,109 @@
 
           <div class="space-y-3">
             @for (q of forumThreads; track q.id) {
-              <div class="bg-white rounded-2xl border border-slate-200/80 p-4 text-right space-y-2">
+              <div class="bg-white rounded-2xl border border-slate-200/80 p-4 text-right space-y-3 shadow-2xs">
+                
                 <div class="flex items-center justify-between text-xs text-slate-500">
-                  <span class="font-bold text-slate-800">{{ q.authorName || 'طالب' }}</span>
-                  <span class="font-mono">{{ q.createdAt | date:'mediumDate' }}</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-lg bg-teal-50 text-teal-700 font-bold flex items-center justify-center text-[10px]">
+                      {{ (q.authorName || 'ط')[0].toUpperCase() }}
+                    </div>
+                    <span class="font-bold text-slate-800">{{ q.authorName || 'طالب' }}</span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-[11px]">{{ q.createdAt | date:'mediumDate' }}</span>
+                    @if (canModifyQuestion(q)) {
+                      <button
+                        type="button"
+                        (click)="deleteLessonQuestion(q)"
+                        class="text-slate-400 hover:text-red-500 p-0.5 rounded cursor-pointer transition-colors"
+                        title="حذف السؤال"
+                      >
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    }
+                  </div>
                 </div>
-                <h5 class="font-bold text-sm text-slate-900">{{ q.title }}</h5>
-                <p class="text-xs text-slate-600 leading-relaxed">{{ q.content }}</p>
-                <div class="pt-2 border-t border-slate-100 flex items-center gap-4 text-xs text-teal-700 font-semibold">
-                  <span class="flex items-center gap-1">
+
+                <h5 class="font-bold text-sm text-slate-900 leading-snug">{{ q.title }}</h5>
+                <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{{ q.content }}</p>
+
+                <!-- Action Bar -->
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    (click)="toggleReplies(q.id)"
+                    class="flex items-center gap-1 text-teal-700 font-bold hover:bg-teal-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  >
                     <span class="material-symbols-outlined text-sm">chat</span>
                     <span>{{ q.postsCount || 0 }} ردود</span>
-                  </span>
+                    <span class="material-symbols-outlined text-xs">{{ expandedThreadIds.has(q.id) ? 'expand_less' : 'expand_more' }}</span>
+                  </button>
+
                   <span class="flex items-center gap-1 text-slate-400 font-normal">
                     <span class="material-symbols-outlined text-sm">thumb_up</span>
                     <span>{{ q.votesCount || 0 }} تصويت</span>
                   </span>
                 </div>
+
+                <!-- Expanded Replies Section -->
+                @if (expandedThreadIds.has(q.id)) {
+                  <div class="pt-3 border-t border-slate-100 space-y-3 animate-in fade-in duration-150">
+                    
+                    <!-- Replies list -->
+                    @if (loadingRepliesMap[q.id]) {
+                      <div class="py-2 text-center text-xs text-slate-400">جاري تحميل الردود...</div>
+                    } @else {
+                      <div class="space-y-2">
+                        @for (reply of threadRepliesMap[q.id]; track reply.id) {
+                          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 space-y-1">
+                            <div class="flex items-center justify-between text-[11px] text-slate-500">
+                              <span class="font-bold text-slate-700">{{ reply.authorName || 'عضو' }}</span>
+                              <div class="flex items-center gap-1.5">
+                                <span class="font-mono text-[10px]">{{ reply.createdAt | date:'shortDate' }}</span>
+                                @if (canModifyLessonReply(reply)) {
+                                  <button
+                                    type="button"
+                                    (click)="deleteLessonReply(q, reply)"
+                                    class="text-slate-400 hover:text-red-500 p-0.5 rounded cursor-pointer transition-colors"
+                                    title="حذف الرد"
+                                  >
+                                    <span class="material-symbols-outlined text-xs">delete</span>
+                                  </button>
+                                }
+                              </div>
+                            </div>
+                            <p class="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{{ reply.content }}</p>
+                          </div>
+                        } @empty {
+                          <p class="text-[11px] text-slate-400 py-1">لا توجد ردود بعد على هذا السؤال.</p>
+                        }
+                      </div>
+                    }
+
+                    <!-- Add Reply Input Form -->
+                    <div class="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        [(ngModel)]="replyInputMap[q.id]"
+                        (keyup.enter)="submitLessonReply(q)"
+                        placeholder="اكتب رداً أو مساعدة حول هذا السؤال..."
+                        class="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-teal-600 bg-white"
+                      />
+                      <button
+                        type="button"
+                        [disabled]="submittingReplyMap[q.id]"
+                        (click)="submitLessonReply(q)"
+                        class="px-3.5 py-1.5 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {{ submittingReplyMap[q.id] ? 'إرسال...' : 'رد' }}
+                      </button>
+                    </div>
+
+                  </div>
+                }
+
               </div>
             } @empty {
               <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">

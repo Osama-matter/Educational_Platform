@@ -72,7 +72,21 @@ namespace EducationalPlatform.Infrastructure.Services
                 PassingScore = quiz.PassingScore,
                 TotalTimeMinutes = quiz.DurationMinutes,
                 IsPublished = quiz.IsPublished,
-                LessonId = quiz.LessonId
+                LessonId = quiz.LessonId,
+                Questions = quiz.Questions?.Select(q => new QuestionDto
+                {
+                    Id = q.Id,
+                    Content = q.Content,
+                    QuestionType = q.QuestionType,
+                    Score = q.Score,
+                    QuizId = q.QuizId,
+                    Options = q.Options?.Select(opt => new QuestionOptionDto
+                    {
+                        Id = opt.Id,
+                        Text = opt.Text,
+                        IsCorrect = opt.IsCorrect
+                    }).ToList() ?? new List<QuestionOptionDto>()
+                }).ToList() ?? new List<QuestionDto>()
             };
         }
 
@@ -106,6 +120,10 @@ namespace EducationalPlatform.Infrastructure.Services
                 quiz.TotalScore = updateQuizDto.TotalScore ?? quiz.TotalScore;
                 quiz.PassingScore = updateQuizDto.PassingScore ?? quiz.PassingScore;
                 quiz.IsPublished = updateQuizDto.IsPublished ?? quiz.IsPublished;
+                if (updateQuizDto.LessonId.HasValue && updateQuizDto.LessonId.Value != Guid.Empty)
+                {
+                    quiz.LessonId = updateQuizDto.LessonId.Value;
+                }
 
                 await _quizRepository.UpdateAsync(quiz);
             }

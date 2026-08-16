@@ -3,8 +3,11 @@ export interface ForumThreadDto {
   courseId?: string;
   title: string;
   content: string;
-  authorId: string;
-  authorName: string;
+  description?: string;
+  authorId?: string;
+  userId?: string;
+  authorName?: string;
+  userName?: string;
   createdAt: string;
   votesCount: number;
   postsCount: number;
@@ -14,8 +17,11 @@ export interface ForumThreadDto {
 export interface ForumPostDto {
   id: string;
   threadId: string;
-  authorId: string;
-  authorName: string;
+  forumThreadId?: string;
+  authorId?: string;
+  userId?: string;
+  authorName?: string;
+  userName?: string;
   content: string;
   createdAt: string;
   votesCount: number;

@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.Interfaces.Repositories;
+using EducationalPlatform.Application.Interfaces.Repositories;
 using EducationalPlatform.Domain.Entities.Course;
 using EducationalPlatform.Domain.Entities.Leeson;
 using EducationalPlatform.Infrastructure.Data;
@@ -67,6 +67,7 @@ namespace EducationalPlatform.Infrastructure.Repositories
         {
             return await _context.Lessons
                 .Where(l => l.CourseId == courseId)
+                .Include(l => l.CourseFiles)
                 .Include(l => l.Quizzes)
                 .ToListAsync();
         }

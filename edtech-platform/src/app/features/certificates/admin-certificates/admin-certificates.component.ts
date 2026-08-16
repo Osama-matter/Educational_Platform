@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CertificatesService, CertificateSummaryDto, VerifyCertificateDto, CertificateDetailsDto } from '../../../core/services/certificates.service';
 import { CoursesService } from '../../../core/services/courses.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { CourseSummary } from '../../../core/models/course.models';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
@@ -17,6 +18,7 @@ import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
 export class AdminCertificatesComponent implements OnInit {
   private certsService = inject(CertificatesService);
   private coursesService = inject(CoursesService);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   certificates: CertificateSummaryDto[] = [];
@@ -96,18 +98,24 @@ export class AdminCertificatesComponent implements OnInit {
     });
   }
 
-  revoke(id: string): void {
-    const reason = prompt('يرجى كتابة سبب إلغاء الاعتماد (اختياري):') || '';
-    if (confirm('هل أنت متأكد من رغبتك في إلغاء اعتماد هذه الشهادة؟')) {
-      this.certsService.revokeCertificate(id, reason).subscribe({
-        next: () => {
-          const c = this.certificates.find(item => item.id === id);
-          if (c) c.isRevoked = true;
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل إلغاء الشهادة على الخادم.')
-      });
-    }
+  async revoke(id: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'إلغاء اعتماد الشهادة',
+      message: 'هل أنت متأكد من رغبتك في إلغاء اعتماد هذه الشهادة؟ لن يتمكن الطالب من التحقق منها.',
+      confirmText: 'إلغاء الاعتماد',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.certsService.revokeCertificate(id, 'إلغاء إداري').subscribe({
+      next: () => {
+        const c = this.certificates.find(item => item.id === id);
+        if (c) c.isRevoked = true;
+        this.toast.success('تم إلغاء اعتماد الشهادة بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل إلغاء الشهادة على الخادم.')
+    });
   }
 
   openVerifyModal(): void {
@@ -155,7 +163,7 @@ export class AdminCertificatesComponent implements OnInit {
       },
       error: () => {
         this.loadingDetails = false;
-        alert('تعذر جلب تفاصيل الشهادة.');
+        this.toast.error('تعذر جلب تفاصيل الشهادة.');
         this.showDetailsModal = false;
         this.cdr.markForCheck();
       }

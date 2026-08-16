@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CertificatesService, CertificateSummaryDto, CertificateDetailsDto } from '../../../core/services/certificates.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { AuthStore } from '../../../core/services/auth.store';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
@@ -15,6 +16,7 @@ import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
 export class MyCertificatesComponent implements OnInit {
   private certificatesService = inject(CertificatesService);
   private authStore = inject(AuthStore);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   certificates: CertificateSummaryDto[] = [];
@@ -68,11 +70,12 @@ export class MyCertificatesComponent implements OnInit {
         a.download = `Certificate-${certNumber}.pdf`;
         a.click();
         window.URL.revokeObjectURL(url);
+        this.toast.success('تم بدء تحميل الشهادة بنجاح');
         this.cdr.markForCheck();
       },
       error: () => {
         this.downloadingId = null;
-        alert('تعذر تحميل ملف الشهادة.');
+        this.toast.error('تعذر تحميل ملف الشهادة.');
         this.cdr.markForCheck();
       }
     });
@@ -92,7 +95,7 @@ export class MyCertificatesComponent implements OnInit {
       error: () => {
         this.loadingDetails = false;
         this.showDetailsModal = false;
-        alert('تعذر جلب تفاصيل الشهادة.');
+        this.toast.error('تعذر جلب تفاصيل الشهادة.');
         this.cdr.markForCheck();
       }
     });

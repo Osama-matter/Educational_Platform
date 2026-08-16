@@ -13,9 +13,9 @@ import { ProgressBarComponent } from '../progress-bar/progress-bar.component';
       
       <!-- Card Image / Ambient Banner Area -->
       <div class="relative h-48 w-full overflow-hidden bg-slate-900">
-        @if (course.imageUrl && !imageError) {
+        @if (resolvedImageUrl && !imageError) {
           <img
-            [src]="course.imageUrl"
+            [src]="resolvedImageUrl"
             [alt]="course.title"
             (error)="onImageError()"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -62,9 +62,12 @@ import { ProgressBarComponent } from '../progress-bar/progress-bar.component';
 
         <!-- Rating Floating Top-Left -->
         <div class="absolute top-3.5 left-3.5 z-20">
-          <div class="px-2.5 py-1 rounded-full bg-black/40 text-amber-300 backdrop-blur-md border border-white/15 text-[11px] font-bold flex items-center gap-1 shadow-sm">
-            <span class="material-symbols-outlined text-[13px]">star</span>
-            <span>4.9</span>
+          <div class="px-2.5 py-1 rounded-full bg-black/50 text-amber-300 backdrop-blur-md border border-white/15 text-[11px] font-bold flex items-center gap-1 shadow-sm">
+            <span class="material-symbols-outlined text-[13px] text-amber-400">star</span>
+            <span>{{ courseRating > 0 ? courseRating : 'جديد' }}</span>
+            @if (reviewsCount > 0) {
+              <span class="text-[10px] text-white/70">({{ reviewsCount }})</span>
+            }
           </div>
         </div>
       </div>
@@ -120,14 +123,25 @@ import { ProgressBarComponent } from '../progress-bar/progress-bar.component';
               </div>
             </div>
 
-            <!-- Action Button -->
-            <a
-              [routerLink]="['/catalog/course', course.id]"
-              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-on-primary font-bold text-xs transition-all shadow-xs"
-            >
-              <span>التفاصيل</span>
-              <span class="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-1">arrow_back</span>
-            </a>
+            <!-- Footer Price & Action Button -->
+            <div class="flex items-center gap-3">
+              <div class="text-right">
+                @if (course.price > 0) {
+                  <span class="font-extrabold text-sm text-primary">{{ course.price }} <span class="text-[10px] font-normal text-on-surface-variant">ج.م</span></span>
+                } @else {
+                  <span class="font-bold text-xs text-emerald-600">مجاني</span>
+                }
+              </div>
+
+              <!-- Action Button -->
+              <a
+                [routerLink]="['/catalog/course', course.id]"
+                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-on-primary font-bold text-xs transition-all shadow-xs"
+              >
+                <span>التفاصيل</span>
+                <span class="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-1">arrow_back</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -140,6 +154,30 @@ export class CourseCardComponent {
   @Output() enroll = new EventEmitter<string>();
 
   imageError = false;
+
+  get resolvedImageUrl(): string | undefined {
+    return this.course?.imageUrl || (this.course as any)?.image_URl || (this.course as any)?.image_Url;
+  }
+
+  get courseRating(): number {
+    if (this.course?.rating && this.course.rating > 0) {
+      return this.course.rating;
+    }
+    const reviews = (this.course as any)?.reviews || [];
+    if (reviews.length > 0) {
+      const sum = reviews.reduce((acc: number, r: any) => acc + (r.rate || 0), 0);
+      return Math.round((sum / reviews.length) * 10) / 10;
+    }
+    return 0;
+  }
+
+  get reviewsCount(): number {
+    if ((this.course as any)?.reviewsCount !== undefined) {
+      return (this.course as any).reviewsCount;
+    }
+    const reviews = (this.course as any)?.reviews || [];
+    return reviews.length;
+  }
 
   onImageError(): void {
     this.imageError = true;

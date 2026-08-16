@@ -32,22 +32,30 @@ namespace EducationalPlatform.Infrastructure.Services
                 throw new InvalidOperationException("UserId is required.");
             }
 
-            var existingAttempts = await _quizAttemptRepository.GetByUserIdAndQuizIdAsync(createQuizAttemptDto.UserId.Value, createQuizAttemptDto.QuizId);
-            if (existingAttempts.Any(a => a.Status == QuizAttemptStatus.Graded))
-            {
-                throw new InvalidOperationException("You have already completed this quiz.");
-            }
-
             var quiz = await _quizRepository.GetByIdAsync(createQuizAttemptDto.QuizId);
             if (quiz == null)
             {
                 throw new ArgumentException("Quiz not found");
             }
-            if (quiz.AvailableFrom > DateTime.UtcNow || quiz.AvailableTo < DateTime.UtcNow)
+
+            // Only validate dates if they are real calendar dates
+            if (quiz.AvailableFrom.Year > 1900 && quiz.AvailableFrom > DateTime.UtcNow)
             {
-                throw new InvalidOperationException("Quiz is not currently available.");
+                throw new InvalidOperationException("Quiz is not yet available.");
+            }
+            if (quiz.AvailableTo.Year > 1900 && quiz.AvailableTo < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Quiz has expired.");
             }
 
+            var existingAttempts = (await _quizAttemptRepository.GetByUserIdAndQuizIdAsync(createQuizAttemptDto.UserId.Value, createQuizAttemptDto.QuizId)).ToList();
+            
+            // Check if there is an in-progress attempt to resume
+            var inProgress = existingAttempts.FirstOrDefault(a => a.Status == QuizAttemptStatus.InProgress);
+            if (inProgress != null)
+            {
+                return inProgress.Id;
+            }
 
             var quizAttempt = new QuizAttempt
             {
@@ -113,16 +121,23 @@ namespace EducationalPlatform.Infrastructure.Services
         public async Task<IEnumerable<QuizAttemptDto>> GetQuizAttemptsAsync()
         {
             var quizAttempts = await _quizAttemptRepository.GetAllAsync();
-            return quizAttempts.Select(quizAttempt => new QuizAttemptDto
+            var quizzes = (await _quizRepository.GetAllAsync()).ToDictionary(q => q.Id, q => q);
+            return quizAttempts.Select(quizAttempt =>
             {
-                Id = quizAttempt.Id,
-                UserId = quizAttempt.UserId,
-                QuizId = quizAttempt.QuizId,
-                StartedAt = quizAttempt.StartedAt,
-                SubmittedAt = quizAttempt.SubmittedAt,
-                TotalScore = quizAttempt.TotalScore,
-                Status = quizAttempt.Status
-            });
+                quizzes.TryGetValue(quizAttempt.QuizId, out var quiz);
+                return new QuizAttemptDto
+                {
+                    Id = quizAttempt.Id,
+                    UserId = quizAttempt.UserId,
+                    QuizId = quizAttempt.QuizId,
+                    QuizTitle = quiz?.Title ?? "اختبار تقييمي",
+                    StartedAt = quizAttempt.StartedAt,
+                    SubmittedAt = quizAttempt.SubmittedAt,
+                    TotalScore = quizAttempt.TotalScore,
+                    Status = quizAttempt.Status,
+                    TotalTimeMinutes = quiz?.DurationMinutes ?? 0
+                };
+            }).ToList();
         }
 
         public async Task UpdateQuizAttemptAsync(Guid id, UpdateQuizAttemptDto updateQuizAttemptDto)

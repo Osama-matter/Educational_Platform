@@ -58,6 +58,27 @@ namespace EducationalPlatform.API.Controllers
             return Ok(quizAttempts);
         }
 
+        [HttpGet("my-attempts")]
+        public async Task<IActionResult> GetMyAttempts()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized();
+            }
+            var all = await _quizAttemptService.GetQuizAttemptsAsync();
+            var userAttempts = all.Where(a => a.UserId == userId).OrderByDescending(a => a.SubmittedAt ?? a.StartedAt).ToList();
+            return Ok(userAttempts);
+        }
+
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetByUser(Guid userId)
+        {
+            var all = await _quizAttemptService.GetQuizAttemptsAsync();
+            var userAttempts = all.Where(a => a.UserId == userId).OrderByDescending(a => a.SubmittedAt ?? a.StartedAt).ToList();
+            return Ok(userAttempts);
+        }
+
         [HttpGet(Routes.Routes.QuizAttempts.GetQuizAttemptById)]
         public async Task<IActionResult> GetById(Guid quizAttemptId)
         {

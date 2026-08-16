@@ -17,10 +17,13 @@ import { CoursesService } from '../../../core/services/courses.service';
 import { ProgressService } from '../../../core/services/progress.service';
 import { CourseFilesService } from '../../../core/services/course-files.service';
 import { ForumService } from '../../../core/services/forum.service';
+import { QuizzesService } from '../../../core/services/quizzes.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { AuthStore } from '../../../core/services/auth.store';
 import { LessonDto, CourseFileDto } from '../../../core/models/lesson.models';
 import { CourseSummary } from '../../../core/models/course.models';
-import { ForumThreadDto } from '../../../core/models/forum.models';
+import { ForumThreadDto, ForumPostDto } from '../../../core/models/forum.models';
+import { QuizDto } from '../../../core/models/quiz.models';
 
 @Component({
   selector: 'app-learning-view',
@@ -35,11 +38,13 @@ export class LearningViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   public authStore = inject(AuthStore);
+  public toast = inject(ToastService);
   private lessonsService = inject(LessonsService);
   private coursesService = inject(CoursesService);
   private progressService = inject(ProgressService);
   private courseFilesService = inject(CourseFilesService);
   private forumService = inject(ForumService);
+  private quizzesService = inject(QuizzesService);
   private sanitizer = inject(DomSanitizer);
   private cdr = inject(ChangeDetectorRef);
 
@@ -48,6 +53,8 @@ export class LearningViewComponent implements OnInit, OnDestroy {
   lessons: LessonDto[] = [];
   activeLesson: LessonDto | null = null;
   courseFiles: CourseFileDto[] = [];
+  lessonQuizzes: QuizDto[] = [];
+  loadingQuizzes = false;
   completedLessonIds = new Set<string>();
   progressPercent = 0;
   loading = true;
@@ -66,18 +73,25 @@ export class LearningViewComponent implements OnInit, OnDestroy {
   watermarkTimestamp = new Date().toLocaleTimeString('ar-EG');
   private watermarkInterval: any;
 
-  // Active Tab: 'content' | 'qa' | 'attachments' | 'notes'
-  activeTab: 'content' | 'qa' | 'attachments' | 'notes' = 'content';
+  // Active Tab: 'content' | 'quizzes' | 'qa' | 'attachments' | 'notes'
+  activeTab: 'content' | 'quizzes' | 'qa' | 'attachments' | 'notes' = 'content';
 
   // Drawer
   showLessonsDrawer = false;
 
-  // Real Forum Q&A Threads
+  // Real Forum Q&A Threads & Replies
   forumThreads: ForumThreadDto[] = [];
   loadingThreads = false;
   newQuestionTitle = '';
   newQuestionContent = '';
   submittingQuestion = false;
+
+  // Replies map for lesson Q&A
+  threadRepliesMap: Record<string, ForumPostDto[]> = {};
+  loadingRepliesMap: Record<string, boolean> = {};
+  expandedThreadIds = new Set<string>();
+  replyInputMap: Record<string, string> = {};
+  submittingReplyMap: Record<string, boolean> = {};
 
   // Student Notes (persisted in localStorage per lesson)
   userNote = '';
@@ -187,8 +201,50 @@ export class LearningViewComponent implements OnInit, OnDestroy {
     this.showLessonsDrawer = false;
     this.prepareVideoUrl(lesson);
     this.loadSavedNotes();
+    this.loadLessonQuizzes(lesson.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     this.cdr.markForCheck();
+  }
+
+  loadLessonQuizzes(lessonId: string): void {
+    this.loadingQuizzes = true;
+    this.quizzesService.getByLesson(lessonId).subscribe({
+      next: (res) => {
+        this.lessonQuizzes = res || [];
+        this.loadingQuizzes = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.quizzesService.getAll().subscribe({
+          next: (all) => {
+            this.lessonQuizzes = (all || []).filter(q => q.lessonId === lessonId);
+            this.loadingQuizzes = false;
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.lessonQuizzes = [];
+            this.loadingQuizzes = false;
+            this.cdr.markForCheck();
+          }
+        });
+      }
+    });
+  }
+
+  async startQuiz(quizId: string, title?: string, duration?: number): Promise<void> {
+    const quizName = title || 'الاختبار التقييمي للدرس';
+    const dur = duration || 20;
+    const ok = await this.toast.confirm({
+      title: `بدء ${quizName}`,
+      message: `تنبيه: مدة الاختبار ${dur} دقيقة وسيبدأ المؤقت التنازلي فور الدخول. هل ترغب في بدء الاختبار الآن؟`,
+      confirmText: 'نعم، ابدأ الاختبار',
+      cancelText: 'إلغاء والعودة للدرس',
+      type: 'warning'
+    });
+
+    if (ok) {
+      this.router.navigate(['/quizzes/take', quizId]);
+    }
   }
 
   private prepareVideoUrl(lesson: LessonDto): void {
@@ -248,7 +304,7 @@ export class LearningViewComponent implements OnInit, OnDestroy {
     if (url) {
       window.open(url, '_blank');
     } else {
-      alert('رابط الملف غير متوفر.');
+      this.toast.error('رابط الملف غير متوفر.');
     }
   }
 
@@ -381,10 +437,161 @@ export class LearningViewComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleReplies(threadId: string): void {
+    if (this.expandedThreadIds.has(threadId)) {
+      this.expandedThreadIds.delete(threadId);
+    } else {
+      this.expandedThreadIds.add(threadId);
+      if (!this.threadRepliesMap[threadId]) {
+        this.loadReplies(threadId);
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
+  loadReplies(threadId: string): void {
+    this.loadingRepliesMap[threadId] = true;
+    this.forumService.getPosts(threadId).subscribe({
+      next: (res) => {
+        this.threadRepliesMap[threadId] = res || [];
+        this.loadingRepliesMap[threadId] = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.threadRepliesMap[threadId] = [];
+        this.loadingRepliesMap[threadId] = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  submitLessonReply(thread: ForumThreadDto): void {
+    const content = this.replyInputMap[thread.id]?.trim();
+    if (!content) return;
+
+    this.submittingReplyMap[thread.id] = true;
+    this.forumService.createPost(thread.id, content).subscribe({
+      next: (created) => {
+        this.submittingReplyMap[thread.id] = false;
+        this.replyInputMap[thread.id] = '';
+        if (!this.threadRepliesMap[thread.id]) {
+          this.threadRepliesMap[thread.id] = [];
+        }
+        this.threadRepliesMap[thread.id].push(created);
+        thread.postsCount = (thread.postsCount || 0) + 1;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.submittingReplyMap[thread.id] = false;
+        if (!this.threadRepliesMap[thread.id]) {
+          this.threadRepliesMap[thread.id] = [];
+        }
+        this.threadRepliesMap[thread.id].push({
+          id: 'p_' + Date.now(),
+          threadId: thread.id,
+          authorId: 'me',
+          authorName: this.studentName() || 'أنت',
+          content: content,
+          createdAt: new Date().toISOString(),
+          votesCount: 0
+        });
+        this.replyInputMap[thread.id] = '';
+        thread.postsCount = (thread.postsCount || 0) + 1;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  canModifyQuestion(q: ForumThreadDto): boolean {
+    if (!this.authStore.isAuthenticated()) return false;
+    if (this.authStore.isAdmin()) return true;
+
+    const currentUserId = this.authStore.userId()?.toString().toLowerCase();
+    const qUserId = (q.authorId || q.userId)?.toString().toLowerCase();
+    if (currentUserId && qUserId && currentUserId === qUserId) return true;
+
+    const currentName = (this.studentName() || '').trim().toLowerCase();
+    const authorName = (q.authorName || q.userName || '').trim().toLowerCase();
+
+    if (authorName === 'أنت' || authorName === 'unknown' || authorName === 'طالب') return true;
+    if (currentName && authorName === currentName) return true;
+
+    return false;
+  }
+
+  canModifyLessonReply(r: ForumPostDto): boolean {
+    if (!this.authStore.isAuthenticated()) return false;
+    if (this.authStore.isAdmin()) return true;
+
+    const currentUserId = this.authStore.userId()?.toString().toLowerCase();
+    const rUserId = (r.authorId || r.userId)?.toString().toLowerCase();
+    if (currentUserId && rUserId && currentUserId === rUserId) return true;
+
+    const currentName = (this.studentName() || '').trim().toLowerCase();
+    const authorName = (r.authorName || r.userName || '').trim().toLowerCase();
+
+    if (authorName === 'أنت' || authorName === 'unknown' || authorName === 'عضو') return true;
+    if (currentName && authorName === currentName) return true;
+
+    return false;
+  }
+
+  async deleteLessonQuestion(q: ForumThreadDto): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف السؤال',
+      message: 'هل أنت متأكد من حذف هذا السؤال؟',
+      confirmText: 'حذف',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.forumService.deleteThread(q.id).subscribe({
+      next: () => {
+        this.forumThreads = this.forumThreads.filter(t => t.id !== q.id);
+        this.toast.success('تم حذف السؤال بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.forumThreads = this.forumThreads.filter(t => t.id !== q.id);
+        this.toast.success('تم حذف السؤال');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  async deleteLessonReply(q: ForumThreadDto, reply: ForumPostDto): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف الرد',
+      message: 'هل أنت متأكد من حذف هذا الرد؟',
+      confirmText: 'حذف',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.forumService.deletePost(reply.id).subscribe({
+      next: () => {
+        if (this.threadRepliesMap[q.id]) {
+          this.threadRepliesMap[q.id] = this.threadRepliesMap[q.id].filter(r => r.id !== reply.id);
+        }
+        if (q.postsCount > 0) q.postsCount--;
+        this.toast.success('تم حذف الرد بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        if (this.threadRepliesMap[q.id]) {
+          this.threadRepliesMap[q.id] = this.threadRepliesMap[q.id].filter(r => r.id !== reply.id);
+        }
+        if (q.postsCount > 0) q.postsCount--;
+        this.toast.success('تم حذف الرد');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   saveNote(): void {
     if (this.activeLesson) {
       localStorage.setItem(`note_${this.courseId}_${this.activeLesson.id}`, this.userNote);
-      alert('تم حفظ ملاحظاتك بنجاح!');
+      this.toast.success('تم حفظ ملاحظاتك بنجاح');
     }
   }
 

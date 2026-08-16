@@ -1,4 +1,4 @@
-﻿namespace EducationalPlatform.API.Routes
+namespace EducationalPlatform.API.Routes
 {
     public static class Routes
     {
@@ -100,19 +100,19 @@
         public static class ForumThreads
         {
             public const string GetAllThreads = "";
-            public const string GetThreadById = "{id}";
+            public const string GetThreadById = "{id:guid}";
             public const string CreateThread = "";
-            public const string UpdateThread = "{id}";
-            public const string DeleteThread = "{id}";
-            public const string GetThreadPosts = "{id}/posts";
+            public const string UpdateThread = "{id:guid}";
+            public const string DeleteThread = "{id:guid}";
+            public const string GetThreadPosts = "{id:guid}/posts";
         }
 
         public static class ForumPosts
         {
-            public const string GetPostById = "{id}";
+            public const string GetPostById = "{id:guid}";
             public const string CreatePost = "";
-            public const string UpdatePost = "{id}";
-            public const string DeletePost = "{id}";
+            public const string UpdatePost = "{id:guid}";
+            public const string DeletePost = "{id:guid}";
         }
 
         public static class ForumSubscriptions

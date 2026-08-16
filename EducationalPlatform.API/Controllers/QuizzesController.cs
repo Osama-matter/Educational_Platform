@@ -47,6 +47,15 @@ namespace EducationalPlatform.API.Controllers
             return Ok(quiz);
         }
 
+        [HttpGet("lesson/{lessonId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByLessonId(Guid lessonId)
+        {
+            var quizzes = await _quizService.GetQuizzesAsync();
+            var lessonQuizzes = quizzes.Where(q => q.LessonId == lessonId).ToList();
+            return Ok(lessonQuizzes);
+        }
+
         [HttpGet("admin/{quizId}")]
         public async Task<IActionResult> GetQuizDetailsForAdmin(Guid quizId )
         {
@@ -60,10 +69,10 @@ namespace EducationalPlatform.API.Controllers
 
         [HttpPut(Routes.Routes.Quizzes.UpdateQuiz)]
         [Authorize(Roles = "Admin,Instructor")]
-        public async Task<IActionResult> Update(Guid quizId, UpdateQuizDto updateQuizDto)
+        public async Task<IActionResult> Update([FromRoute] Guid quizId, [FromBody] UpdateQuizDto updateQuizDto)
         {
             await _quizService.UpdateQuizAsync(quizId, updateQuizDto);
-            return Ok("Updated  Successfully  ");
+            return Ok(new { message = "Updated Successfully" });
         }
 
         [HttpDelete(Routes.Routes.Quizzes.DeleteQuiz)]

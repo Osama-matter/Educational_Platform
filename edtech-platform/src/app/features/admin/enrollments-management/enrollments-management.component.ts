@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EnrollmentsService } from '../../../core/services/enrollments.service';
 import { CoursesService } from '../../../core/services/courses.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { EnrollmentDto } from '../../../core/models/enrollment.models';
 import { CourseSummary } from '../../../core/models/course.models';
 import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
@@ -18,6 +19,7 @@ import { ButtonComponent } from '../../../shared/ui/button/button.component';
 export class EnrollmentsManagementComponent implements OnInit {
   private enrollmentsService = inject(EnrollmentsService);
   private coursesService = inject(CoursesService);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   enrollments: EnrollmentDto[] = [];
@@ -94,6 +96,7 @@ export class EnrollmentsManagementComponent implements OnInit {
         this.savingEnroll = false;
         this.showEnrollModal = false;
         this.enrollments.unshift(created);
+        this.toast.success('تم إضافة تسجيل الطالب بنجاح');
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -109,21 +112,29 @@ export class EnrollmentsManagementComponent implements OnInit {
     this.enrollmentsService.update(item.id, { isActive: newStatus }).subscribe({
       next: () => {
         item.isActive = newStatus;
+        this.toast.success(newStatus ? 'تم تفعيل تسجيل الطالب' : 'تم إلغاء تفعيل التسجيل');
         this.cdr.markForCheck();
       },
-      error: () => alert('فشل تحديث حالة التسجيل.')
+      error: () => this.toast.error('فشل تحديث حالة التسجيل.')
     });
   }
 
-  deleteEnrollment(id: string): void {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذا التسجيل؟')) {
-      this.enrollmentsService.delete(id).subscribe({
-        next: () => {
-          this.enrollments = this.enrollments.filter(e => e.id !== id);
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل حذف التسجيل من الخادم.')
-      });
-    }
+  async deleteEnrollment(id: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف التسجيل',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا التسجيل؟',
+      confirmText: 'حذف التسجيل',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.enrollmentsService.delete(id).subscribe({
+      next: () => {
+        this.enrollments = this.enrollments.filter(e => e.id !== id);
+        this.toast.success('تم حذف التسجيل بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل حذف التسجيل من الخادم.')
+    });
   }
 }

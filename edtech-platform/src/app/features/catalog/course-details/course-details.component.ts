@@ -7,17 +7,17 @@ import { LessonsService } from '../../../core/services/lessons.service';
 import { EnrollmentsService } from '../../../core/services/enrollments.service';
 import { ReviewsService } from '../../../core/services/reviews.service';
 import { CourseFilesService } from '../../../core/services/course-files.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { AuthStore } from '../../../core/services/auth.store';
 import { CourseSummary } from '../../../core/models/course.models';
 import { LessonDto, CourseFileDto } from '../../../core/models/lesson.models';
 import { ReviewDto, CreateReviewDto } from '../../../core/models/review.models';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
-import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
 
 @Component({
   selector: 'app-course-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ButtonComponent, BadgeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ButtonComponent],
   templateUrl: './course-details.component.html',
   styleUrl: './course-details.component.scss'
 })
@@ -29,6 +29,7 @@ export class CourseDetailsComponent implements OnInit {
   private enrollmentsService = inject(EnrollmentsService);
   private reviewsService = inject(ReviewsService);
   private courseFilesService = inject(CourseFilesService);
+  public toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
   authStore = inject(AuthStore);
 
@@ -59,6 +60,109 @@ export class CourseDetailsComponent implements OnInit {
   replyingReviewId: string | null = null;
   replyContent = '';
   submittingReply = false;
+
+  // Accordion State for Sections & Lessons
+  expandedSectionIds = new Set<number>([1]);
+  expandedLessonIds = new Set<string>();
+  showReviewForm = false;
+  copiedToast = false;
+
+  toggleSection(sectionNumber: number): void {
+    if (this.expandedSectionIds.has(sectionNumber)) {
+      this.expandedSectionIds.delete(sectionNumber);
+    } else {
+      this.expandedSectionIds.add(sectionNumber);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isSectionExpanded(sectionNumber: number): boolean {
+    return this.expandedSectionIds.has(sectionNumber);
+  }
+
+  toggleLesson(lessonId: string): void {
+    if (this.expandedLessonIds.has(lessonId)) {
+      this.expandedLessonIds.delete(lessonId);
+    } else {
+      this.expandedLessonIds.add(lessonId);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isLessonExpanded(lessonId: string): boolean {
+    return this.expandedLessonIds.has(lessonId);
+  }
+
+  copyShareLink(): void {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      this.copiedToast = true;
+      setTimeout(() => {
+        this.copiedToast = false;
+        this.cdr.markForCheck();
+      }, 2500);
+      this.cdr.markForCheck();
+    }
+  }
+
+  get courseSections(): { sectionNumber: number; title: string; lessons: LessonDto[]; totalDuration: number }[] {
+    const numSections = Math.max(1, this.course?.numberOfSections || 1);
+    if (!this.lessons || this.lessons.length === 0) {
+      return [{
+        sectionNumber: 1,
+        title: 'مقدمة ومنهاج الدورة',
+        lessons: [],
+        totalDuration: 0
+      }];
+    }
+
+    if (numSections === 1 || this.lessons.length <= 2) {
+      const duration = this.lessons.reduce((acc, l) => acc + (l.durationMinutes || 15), 0);
+      return [{
+        sectionNumber: 1,
+        title: 'مقدمة ومفاهيم الدورة الأساسية',
+        lessons: this.lessons,
+        totalDuration: duration
+      }];
+    }
+
+    const itemsPerSection = Math.ceil(this.lessons.length / numSections);
+    const sections = [];
+    const sectionTitles = [
+      'مقدمة ومفاهيم أساسية',
+      'الدورة التطبيقية وبناء المهارات',
+      'المفاهيم المتقدمة وحالات العمل',
+      'المشروع النهائي والتقييم'
+    ];
+
+    for (let i = 0; i < numSections; i++) {
+      const startIdx = i * itemsPerSection;
+      const endIdx = startIdx + itemsPerSection;
+      const sectionLessons = this.lessons.slice(startIdx, endIdx);
+      if (sectionLessons.length > 0) {
+        const duration = sectionLessons.reduce((acc, l) => acc + (l.durationMinutes || 15), 0);
+        sections.push({
+          sectionNumber: i + 1,
+          title: sectionTitles[i] || `القسم ${i + 1}: التطبيق العملي`,
+          lessons: sectionLessons,
+          totalDuration: duration
+        });
+      }
+    }
+    return sections;
+  }
+
+  get totalLessonsDuration(): number {
+    return this.lessons.reduce((acc, l) => acc + (l.durationMinutes || 0), 0);
+  }
+
+  get averageRating(): number {
+    if (this.reviews && this.reviews.length > 0) {
+      const sum = this.reviews.reduce((acc, r) => acc + (r.rate || 0), 0);
+      return Math.round((sum / this.reviews.length) * 10) / 10;
+    }
+    return this.course?.rating || 0;
+  }
 
   ngOnInit(): void {
     if (!this.courseId) {
@@ -160,7 +264,7 @@ export class CourseDetailsComponent implements OnInit {
     if (url) {
       window.open(url, '_blank');
     } else {
-      alert('رابط الملف غير متوفر.');
+      this.toast.error('رابط الملف غير متوفر.');
     }
   }
 
@@ -180,6 +284,7 @@ export class CourseDetailsComponent implements OnInit {
       next: () => {
         this.enrolling = false;
         this.isEnrolled = true;
+        this.toast.success('تم تسجيلك في الدورة بنجاح!');
         this.router.navigate(['/learning', this.courseId]);
       },
       error: (err) => {
@@ -213,6 +318,7 @@ export class CourseDetailsComponent implements OnInit {
       next: (created) => {
         this.submittingReview = false;
         this.reviewSuccessMessage = 'شكراً لك! تم إضافة تقييمك بنجاح.';
+        this.toast.success('شكراً لك! تم إضافة تقييمك بنجاح.');
         this.newReview.comment = '';
         this.newReview.rate = 5;
         this.reviews.unshift(created);
@@ -250,25 +356,33 @@ export class CourseDetailsComponent implements OnInit {
         }
         this.replyingReviewId = null;
         this.replyContent = '';
+        this.toast.success('تم إرسال رد المحاضر بنجاح');
         this.cdr.markForCheck();
       },
       error: () => {
         this.submittingReply = false;
-        alert('تعذر إرسال الرد على التقييم.');
+        this.toast.error('تعذر إرسال الرد على التقييم.');
       }
     });
   }
 
-  deleteReview(reviewId: string): void {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذا التقييم؟')) {
-      this.reviewsService.delete(reviewId).subscribe({
-        next: () => {
-          this.reviews = this.reviews.filter(r => r.id !== reviewId);
-          this.cdr.markForCheck();
-        },
-        error: () => alert('فشل حذف التقييم.')
-      });
-    }
+  async deleteReview(reviewId: string): Promise<void> {
+    const ok = await this.toast.confirm({
+      title: 'حذف التقييم',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا التقييم؟',
+      confirmText: 'حذف التقييم',
+      type: 'danger'
+    });
+    if (!ok) return;
+
+    this.reviewsService.delete(reviewId).subscribe({
+      next: () => {
+        this.reviews = this.reviews.filter(r => r.id !== reviewId);
+        this.toast.success('تم حذف التقييم بنجاح');
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('فشل حذف التقييم.')
+    });
   }
 
   canManageReviews(): boolean {

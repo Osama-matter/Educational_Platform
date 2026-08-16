@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Application.DTOs.Lessons;
+using EducationalPlatform.Application.DTOs.Lessons;
 using EducationalPlatform.Application.DTOs.Quiz;
 using EducationalPlatform.Application.Interfaces.Repositories;
 using EducationalPlatform.Application.Interfaces.Services;
@@ -133,6 +133,7 @@ namespace EducationalPlatform.Infrastructure.Services
                 Content = OData.Content,
                 OrderIndex = OData.OrderIndex,
                 DurationMinutes = OData.DurationMinutes,
+                VideoUrl = OData.CourseFiles?.FirstOrDefault(cf => cf.FileType == Domain.Enums.CourseFileType.Video)?.BlobStorageUrl,
                 CreatedAt = OData.CreatedAt,
                 UpdatedAt = OData.UpdatedAt,
                 Quizzes = OData.Quizzes?.Select(q => new EducationalPlatform.Application.DTOs.Quiz.QuizSummaryDto
@@ -164,6 +165,7 @@ namespace EducationalPlatform.Infrastructure.Services
                 Content = lesson.Content,
                 OrderIndex = lesson.OrderIndex,
                 DurationMinutes = lesson.DurationMinutes,
+                VideoUrl = lesson.CourseFiles?.FirstOrDefault(cf => cf.FileType == Domain.Enums.CourseFileType.Video)?.BlobStorageUrl,
                 CreatedAt = lesson.CreatedAt,
                 UpdatedAt = lesson.UpdatedAt,
                 Quizzes = lesson.Quizzes?.Select(q => new EducationalPlatform.Application.DTOs.Quiz.QuizSummaryDto

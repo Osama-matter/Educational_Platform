@@ -3,6 +3,7 @@ export interface ReviewDto {
   courseId: string;
   userId: string;
   userFullName?: string;
+  userName?: string;
   rate: number;
   comment: string;
   createdAt: string;

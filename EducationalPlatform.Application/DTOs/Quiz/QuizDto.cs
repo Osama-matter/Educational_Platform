@@ -1,4 +1,6 @@
+using EducationalPlatform.Application.DTOs.Question;
 using System;
+using System.Collections.Generic;
 
 namespace EducationalPlatform.Application.DTOs.Quiz
 {
@@ -15,5 +17,6 @@ namespace EducationalPlatform.Application.DTOs.Quiz
         public int TotalTimeMinutes { get; set; }
         public bool IsPublished { get; set; }
         public Guid LessonId { get; set; }
+        public List<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
     }
 }

@@ -9,6 +9,7 @@ namespace EducationalPlatform.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class AccountController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -19,7 +20,7 @@ namespace EducationalPlatform.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> Register([FromBody] RegisterDto registerDto)
         {
             try
             {
@@ -28,12 +29,12 @@ namespace EducationalPlatform.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
+        public async Task<ActionResult<UserDto>> Login([FromBody] LoginDto loginDto)
         {
             try
             {
@@ -42,13 +43,13 @@ namespace EducationalPlatform.API.Controllers
             }
             catch (Exception ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new { message = ex.Message });
             }
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost("register-admin")]
-        public async Task<ActionResult<UserDto>> RegisterAdmin(RegisterAdminDto registerAdminDto)
+        public async Task<ActionResult<UserDto>> RegisterAdmin([FromBody] RegisterAdminDto registerAdminDto)
         {
             try
             {
@@ -57,7 +58,22 @@ namespace EducationalPlatform.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> GetMe()
+        {
+            try
+            {
+                var currentUser = await _authService.GetCurrentUserAsync();
+                return Ok(currentUser);
+            }
+            catch
+            {
+                return Unauthorized(new { message = "User session expired or not authenticated." });
             }
         }
 
@@ -72,7 +88,7 @@ namespace EducationalPlatform.API.Controllers
             {
                 // Ignored - signout completes
             }
-            return Ok(new { Message = "Logged out successfully." });
+            return Ok(new { message = "Logged out successfully." });
         }
 
         [HttpGet("details")]
@@ -86,7 +102,7 @@ namespace EducationalPlatform.API.Controllers
             }
             catch (Exception ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new { message = ex.Message });
             }
         }
     }

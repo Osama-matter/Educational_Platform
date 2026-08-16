@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { QuestionDto, CreateQuizAttemptDto, QuizAttemptDto, SubmitAnswersRequest } from '../models/quiz.models';
+import { QuestionDto, CreateQuizAttemptDto, QuizAttemptDto } from '../models/quiz.models';
 
 @Injectable({ providedIn: 'root' })
 export class QuestionsService {
@@ -27,15 +27,27 @@ export class QuizAttemptsService {
   private http = inject(HttpClient);
   private base = `${environment.apiBaseUrl}/QuizAttempts`;
 
-  start(dto: CreateQuizAttemptDto): Observable<QuizAttemptDto> {
-    return this.http.post<QuizAttemptDto>(`${this.base}/start`, dto);
+  create(dto: { quizId: string; userId?: string }): Observable<string | { id: string }> {
+    return this.http.post<string | { id: string }>(this.base, dto);
   }
 
-  submit(attemptId: string, req: SubmitAnswersRequest): Observable<QuizAttemptDto> {
-    return this.http.post<QuizAttemptDto>(`${this.base}/${attemptId}/submit`, req);
+  getMyAttempts(): Observable<QuizAttemptDto[]> {
+    return this.http.get<QuizAttemptDto[]>(`${this.base}/my-attempts`);
   }
 
-  getById(attemptId: string): Observable<QuizAttemptDto> {
-    return this.http.get<QuizAttemptDto>(`${this.base}/${attemptId}`);
+  getUserAttempts(userId: string): Observable<QuizAttemptDto[]> {
+    return this.http.get<QuizAttemptDto[]>(`${this.base}/user/${userId}`);
+  }
+
+  getAll(): Observable<QuizAttemptDto[]> {
+    return this.http.get<QuizAttemptDto[]>(this.base);
+  }
+
+  submit(attemptId: string, req: { answers: { questionId: string; selectedOptionId: string; optionId?: string }[] }): Observable<any> {
+    return this.http.post(`${this.base}/${attemptId}/submit`, req);
+  }
+
+  getById(attemptId: string): Observable<any> {
+    return this.http.get(`${this.base}/${attemptId}`);
   }
 }
