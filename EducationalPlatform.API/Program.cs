@@ -28,12 +28,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:4200",
-            "http://127.0.0.1:4200",
-            "https://localhost:4200",
-            "https://matterhubfrontend.runasp.net"
-        )
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrEmpty(origin)) return false;
+            try
+            {
+                var uri = new Uri(origin);
+                return uri.Host == "localhost" ||
+                       uri.Host == "127.0.0.1" ||
+                       uri.Host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase) ||
+                       uri.Host.EndsWith("runasp.net", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        })
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials();

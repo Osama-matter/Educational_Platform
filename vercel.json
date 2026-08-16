@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "buildCommand": "cd edtech-platform && npm run build",
+  "outputDirectory": "edtech-platform/dist/edtech-platform/browser",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
