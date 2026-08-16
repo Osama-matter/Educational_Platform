@@ -4,6 +4,10 @@
   "outputDirectory": "edtech-platform/dist/edtech-platform/browser",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://matterhub.runasp.net/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
