@@ -29,7 +29,7 @@ namespace EducationalPlatform.Infrastructure.Security
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            // 1. Extract session identifier from HttpOnly cookie
+            // 1. Extract session identifier strictly from HttpOnly cookie
             if (!Request.Cookies.TryGetValue(CookieName, out var sessionId) || string.IsNullOrWhiteSpace(sessionId))
             {
                 return AuthenticateResult.NoResult();

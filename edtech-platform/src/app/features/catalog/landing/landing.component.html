@@ -1,111 +1,270 @@
-<div class="flex flex-col w-full gap-10 sm:gap-14 pb-16 text-right">
-  
-  <!-- Clean Hero Section without Card Cover -->
-  <section class="px-4 sm:px-6 lg:px-8 flex flex-col items-start gap-6 sm:gap-8 mt-6 sm:mt-10 max-w-7xl mx-auto w-full">
-    
-    <div class="flex flex-col gap-4 w-full max-w-3xl">
-      <!-- Seasonal Badge -->
-      <span class="inline-flex items-center gap-2 bg-surface-container-high text-on-surface-variant px-3.5 py-1.5 rounded-full font-caption text-xs w-fit shadow-2xs">
-        <span class="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse"></span>
-        موسم التعلم الجديد بدأ!
-      </span>
+<div class="flex flex-col w-full gap-16 sm:gap-24 pb-20 text-right overflow-hidden">
 
-      <!-- Main Responsive Headline -->
-      <h1 class="font-display-lg text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface leading-tight tracking-tight break-words">
-        اكتشف متعة التعلم <br class="hidden sm:inline" />
-        <span class="text-primary relative inline-block mt-1 sm:mt-0">
-          بشغف وإبداع
-          <svg class="absolute -bottom-1.5 right-0 w-full h-2.5 sm:h-3 text-secondary-container/60" preserveAspectRatio="none" viewBox="0 0 100 20">
-            <path d="M0,10 Q50,20 100,5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
-          </svg>
+  <!-- Hero Section -->
+  <section class="px-4 sm:px-6 lg:px-8 mt-4 sm:mt-12 max-w-7xl mx-auto w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+      <!-- Text & CTAs (Always First on mobile and on right on desktop in RTL) -->
+      <div class="lg:col-span-7 flex flex-col items-start gap-5 sm:gap-6 text-right order-1">
+
+        <!-- Seasonal Pill Badge -->
+        <span
+          class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          موسم التعلم الجديد بدأ!
         </span>
-      </h1>
 
-      <!-- Subtitle Description -->
-      <p class="font-body-md text-on-surface-variant text-sm sm:text-base md:text-lg max-w-2xl mt-1 leading-relaxed">
-        منصتك الأولى لتطوير مهاراتك العملية من خلال دورات تفاعلية معتمدة مصممة خصيصاً لتناسب طموحاتك المهنية بأعلى معايير الجودة.
-      </p>
-    </div>
+        <!-- Main Headline -->
+        <h1
+          class="font-display-lg text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface leading-[1.25] tracking-tight break-words">
+          اكتشف متعة التعلم <br class="hidden sm:inline" />
+          <span class="text-primary relative inline-block mt-1 sm:mt-2">
+            بشغف وإبداع
+            <svg class="absolute -bottom-2 right-0 w-full h-3 sm:h-3.5 text-secondary-container/70"
+              preserveAspectRatio="none" viewBox="0 0 100 20">
+              <path d="M0,10 Q50,20 100,5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4">
+              </path>
+            </svg>
+          </span>
+        </h1>
 
-    <!-- CTA Actions -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-      <a
-        routerLink="/catalog"
-        class="bg-primary text-on-primary px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-bold flex items-center justify-center gap-2.5 shadow-md hover:bg-primary-container transition-all active:scale-95 text-center"
-      >
-        <span>ابدأ رحلتك التعليمية الآن</span>
-        <span class="material-symbols-outlined text-lg sm:text-xl">west</span>
-      </a>
+        <!-- Subtitle Description -->
+        <p class="font-body-md text-on-surface-variant text-sm sm:text-base md:text-lg max-w-2xl leading-relaxed">
+          منصتك الأولى لتطوير مهاراتك العملية والبرمجية من خلال دورات تفاعلية معتمدة مصممة خصيصاً لتناسب طموحاتك المهنية
+          بأعلى معايير الجودة.
+        </p>
 
-      @if (!authStore.isAuthenticated()) {
-        <a
-          routerLink="/auth/register"
-          class="bg-surface-container-lowest border border-outline-variant text-on-surface px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-semibold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-all text-center"
-        >
-          <span>إنشاء حساب مجاني</span>
-        </a>
-      } @else {
-        <a
-          [routerLink]="authStore.isAdmin() ? '/admin' : '/student'"
-          class="bg-surface-container-lowest border border-outline-variant text-on-surface px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-semibold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-all text-center"
-        >
-          <span class="material-symbols-outlined text-lg sm:text-xl">dashboard</span>
-          <span>الانتقال إلى لوحة التحكم</span>
-        </a>
-      }
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto pt-1">
+          <a routerLink="/catalog"
+            class="bg-primary text-on-primary px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-bold flex items-center justify-center gap-2.5 shadow-lg shadow-primary/20 hover:bg-primary-container hover:shadow-xl transition-all active:scale-95 text-center">
+            <span>ابدأ رحلتك التعليمية الآن</span>
+            <span class="material-symbols-outlined text-xl">west</span>
+          </a>
+
+          @if (!authStore.isAuthenticated()) {
+          <a routerLink="/auth/register"
+            class="bg-surface-container-lowest border border-outline-variant text-on-surface px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-semibold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-all text-center shadow-xs">
+            <span>إنشاء حساب مجاني</span>
+          </a>
+          } @else {
+          <a [routerLink]="authStore.isAdmin() ? '/admin' : '/student'"
+            class="bg-surface-container-lowest border border-outline-variant text-on-surface px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl font-label-md text-sm sm:text-base font-semibold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-all text-center shadow-xs">
+            <span class="material-symbols-outlined text-xl">dashboard</span>
+            <span>الاطلاع على لوحة التحكم</span>
+          </a>
+          }
+        </div>
+
+        <!-- Trust Stats Badges -->
+        <div
+          class="pt-3 sm:pt-4 border-t border-outline-variant/60 flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-on-surface-variant font-medium">
+          <div class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <span class="material-symbols-outlined text-sm">verified</span>
+            </span>
+            <span>شهادات معتمدة</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <span class="material-symbols-outlined text-sm">code</span>
+            </span>
+            <span>مشاريع برمجية حية</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <span class="material-symbols-outlined text-sm">star</span>
+            </span>
+            <span>تقييم 4.9</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Image Column (Order 2 on mobile, on left on desktop in RTL) -->
+      <div class="lg:col-span-5 flex items-center justify-center order-2">
+        <div
+          class="relative w-full max-w-sm sm:max-w-md aspect-square rounded-3xl p-3 bg-gradient-to-tr from-teal-900/40 via-slate-900/60 to-slate-900/80 border border-outline-variant/80 shadow-2xl backdrop-blur-md">
+
+          <!-- Ambient Glow Halos -->
+          <div
+            class="absolute -top-8 -right-8 w-36 sm:w-48 h-36 sm:h-48 bg-teal-500/20 rounded-full blur-3xl pointer-events-none">
+          </div>
+          <div
+            class="absolute -bottom-8 -left-8 w-36 sm:w-48 h-36 sm:h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none">
+          </div>
+
+          <!-- Image Container -->
+          <div
+            class="relative w-full h-full rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center border border-white/10 group">
+            <img src="/Me.jpg" alt="م. أسامة مطر | matar.dev" loading="eager" decoding="async"
+              class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" />
+
+            <!-- Top Floating Code Badge -->
+            <div
+              class="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-lg">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="font-mono text-emerald-300">matar.dev</span>
+            </div>
+
+            <!-- Bottom Floating Profile Card -->
+            <div
+              class="absolute bottom-3 inset-x-3 p-2.5 sm:p-3 rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 text-white flex items-center justify-between shadow-xl">
+              <div class="text-right">
+                <span class="font-bold text-xs sm:text-sm block leading-snug">م. أسامة مطر</span>
+                <span class="text-[10px] sm:text-[11px] text-white/75">Software Engineer & Instructor</span>
+              </div>
+              <div
+                class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs shrink-0">
+                <span class="material-symbols-outlined text-base">terminal</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </section>
 
-  <!-- Featured Courses Section -->
-  <section class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
-    <div class="flex items-center justify-between gap-4">
+  <!-- Featured Courses Section (الدورات المميزة) -->
+  <section class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex flex-col gap-6 sm:gap-8">
+    <div class="flex items-center justify-between gap-4 pb-2 border-b border-outline-variant/60">
       <div>
-        <h2 class="font-headline-lg text-xl sm:text-2xl font-bold text-on-surface">الدورات المميزة</h2>
-        <p class="font-body-md text-xs sm:text-sm text-on-surface-variant mt-0.5">مسارات تدريبية مختارة بعناية من نخبة المحاضرين</p>
+        <h2 class="font-display-lg text-2xl sm:text-3xl font-extrabold text-on-surface">الدورات المميزة</h2>
+        <p class="font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">مسارات تدريبية احترافية ومكثفة لنقلك إلى
+          مستوى المطور المتقدم</p>
       </div>
 
-      <a routerLink="/catalog" class="font-label-md text-xs sm:text-sm text-primary flex items-center gap-1 hover:underline shrink-0 font-bold">
-        <span>عرض الكل</span>
+      <a routerLink="/catalog"
+        class="font-label-md text-xs sm:text-sm text-primary flex items-center gap-1 hover:underline shrink-0 font-bold">
+        <span>عرض كل الدورات</span>
         <span class="material-symbols-outlined text-sm sm:text-base">west</span>
       </a>
     </div>
 
     @if (loading) {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (i of [1, 2, 3]; track i) {
-          <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 animate-pulse space-y-4">
-            <div class="w-full h-44 bg-surface-container rounded-2xl"></div>
-            <div class="w-3/4 h-5 bg-surface-container rounded-lg"></div>
-            <div class="w-1/2 h-4 bg-surface-container rounded-lg"></div>
-          </div>
-        }
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      @for (i of [1, 2, 3, 4]; track i) {
+      <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 animate-pulse space-y-4">
+        <div class="w-full h-44 bg-surface-container rounded-2xl"></div>
+        <div class="w-3/4 h-5 bg-surface-container rounded-lg"></div>
+        <div class="w-1/2 h-4 bg-surface-container rounded-lg"></div>
       </div>
+      }
+    </div>
     } @else if (errorMessage) {
-      <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-3xl text-error space-y-3">
-        <span class="material-symbols-outlined text-4xl">cloud_off</span>
-        <p class="font-bold text-sm sm:text-base">{{ errorMessage }}</p>
-        <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
-      </div>
+    <div class="p-8 text-center bg-error-container/20 border border-error/30 rounded-3xl text-error space-y-3">
+      <span class="material-symbols-outlined text-4xl">cloud_off</span>
+      <p class="font-bold text-sm sm:text-base">{{ errorMessage }}</p>
+      <app-button variant="outline" (onClick)="loadData()">إعادة المحاولة</app-button>
+    </div>
     } @else if (featuredCourses.length === 0) {
-      <div class="p-12 text-center bg-surface-container-lowest rounded-3xl border border-outline-variant space-y-4">
-        <div class="w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
-          <span class="material-symbols-outlined text-4xl">school</span>
-        </div>
-        <h3 class="font-headline-md text-lg sm:text-xl font-bold text-on-surface">لا توجد دورات تعليمية متاحة حالياً</h3>
-        <p class="font-body-md text-on-surface-variant text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-          يتم إضافة مسارات ودورات جديدة باستمرار من قبل المحاضرين. اضغط على تحديث البيانات أو عد مجدداً في وقت لاحق.
-        </p>
-        <div class="pt-2">
-          <app-button variant="outline" icon="refresh" (onClick)="loadData()">تحديث الصفحة</app-button>
-        </div>
+    <div class="p-12 text-center bg-surface-container-lowest rounded-3xl border border-outline-variant space-y-4">
+      <div class="w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl">school</span>
       </div>
+      <h3 class="font-headline-md text-lg sm:text-xl font-bold text-on-surface">لا توجد دورات تعليمية متاحة حالياً</h3>
+      <p class="font-body-md text-on-surface-variant text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+        يتم إضافة مسارات ودورات جديدة باستمرار. اضغط على تحديث البيانات أو عد مجدداً في وقت لاحق.
+      </p>
+      <div class="pt-2">
+        <app-button variant="outline" icon="refresh" (onClick)="loadData()">تحديث الصفحة</app-button>
+      </div>
+    </div>
     } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (course of featuredCourses; track course.id) {
-          <app-course-card [course]="course" />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      @for (course of featuredCourses; track course.id) {
+      <app-course-card [course]="course" />
+      }
+    </div>
+    }
+  </section>
+
+  <!-- Why matar.dev Section (لماذا منصة matar.dev؟) -->
+  <section class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="text-center max-w-2xl mx-auto space-y-2">
+      <h2 class="font-display-lg text-2xl sm:text-3xl font-extrabold text-on-surface">لماذا منصة matar.dev؟</h2>
+      <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+        صُممت المنصة لتقديم تجربة تعلم استثنائية تركز على الجانب التطبيقي الحقيقي الذي تحتاجه الشركات والوظائف البرمجية
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Feature 1 -->
+      <div
+        class="bg-surface-container-lowest p-6 sm:p-8 rounded-3xl border border-outline-variant/80 shadow-xs hover:shadow-md transition-all text-center space-y-4 group">
+        <div
+          class="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-600 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-3xl">psychology</span>
+        </div>
+        <h3 class="font-headline-md text-lg font-bold text-on-surface">مدربون خبراء (Expert Instructors)</h3>
+        <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+          تعلم مباشرة من مهندسين ذوي خبرة عملية فعلية في بناء الأنظمة الضخمة وإدارة السيرفرات وقواعد البيانات.
+        </p>
+      </div>
+
+      <!-- Feature 2 -->
+      <div
+        class="bg-surface-container-lowest p-6 sm:p-8 rounded-3xl border border-outline-variant/80 shadow-xs hover:shadow-md transition-all text-center space-y-4 group">
+        <div
+          class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-3xl">terminal</span>
+        </div>
+        <h3 class="font-headline-md text-lg font-bold text-on-surface">محتوى تفاعلي وعملي (Interactive Content)</h3>
+        <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+          كتابة كود حقيقي خطوة بخطوة، مع مشاريع متكاملة Clean Architecture و Signals وتطبيقات قابلة للإطلاق الفوري.
+        </p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div
+        class="bg-surface-container-lowest p-6 sm:p-8 rounded-3xl border border-outline-variant/80 shadow-xs hover:shadow-md transition-all text-center space-y-4 group">
+        <div
+          class="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-3xl">work_outline</span>
+        </div>
+        <h3 class="font-headline-md text-lg font-bold text-on-surface">تأهيل لسوق العمل (Job Assistance)</h3>
+        <p class="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+          مسارات تدريبية تؤهلك لاجتياز المقابلات التقنية (Technical Interviews) وبناء بورتفوليو قوي يجذب مسؤولي التوظيف.
+        </p>
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- CTA Banner -->
+  <section class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+    <div
+      class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-8 sm:p-12 text-white shadow-xl text-center space-y-6 border border-white/10">
+      <div class="absolute -top-16 -right-16 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-16 -left-16 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none">
+      </div>
+
+      <div class="relative z-10 max-w-2xl mx-auto space-y-3">
+        <h2 class="font-display-lg text-2xl sm:text-4xl font-extrabold tracking-tight">
+          جاهز لبدء رحلتك البرمجية مع matar.dev؟
+        </h2>
+        <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
+          انضم إلى مئات المطورين وابدأ في دراسة المسارات الشاملة واستخراج شهاداتك المعتمدة اليوم.
+        </p>
+      </div>
+
+      <div class="relative z-10 flex flex-wrap items-center justify-center gap-3">
+        <a routerLink="/catalog"
+          class="px-8 py-3.5 rounded-2xl bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2">
+          <span>استكشف الدورات المتاحة</span>
+          <span class="material-symbols-outlined text-lg">explore</span>
+        </a>
+        @if (!authStore.isAuthenticated()) {
+        <a routerLink="/auth/register"
+          class="px-8 py-3.5 rounded-2xl bg-white/10 text-white font-bold text-sm border border-white/20 backdrop-blur-md hover:bg-white/20 transition-all">
+          إنشاء حساب مجاني
+        </a>
         }
       </div>
-    }
+    </div>
   </section>
 
 </div>

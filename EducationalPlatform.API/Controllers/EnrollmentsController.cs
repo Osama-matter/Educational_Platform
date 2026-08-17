@@ -48,10 +48,10 @@ namespace EducationalPlatform.API.Controllers
 
         // GET: api/enrollments
         [HttpGet(Routes.Routes.Enrollments.GetAllEnrollments)]
-        public async Task<ActionResult<IEnumerable<EducationalPlatform.Application.DTOs.Enrollments.EnrollmentDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<EducationalPlatform.Application.DTOs.Enrollments.EnrollmentDto>>> GetAll([FromQuery] bool? mine)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isStudent = User.IsInRole("Student") || !User.IsInRole("Admin");
+            var isStudent = User.IsInRole("Student") || !User.IsInRole("Admin") || (mine.HasValue && mine.Value);
             var result = await _enrollmentService.GetAllAsync();
 
             if (!string.IsNullOrEmpty(userId) && isStudent && Guid.TryParse(userId, out var studentGuid))

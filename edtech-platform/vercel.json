@@ -6,6 +6,14 @@
       "destination": "https://matterhub.runasp.net/api/:path*"
     },
     {
+      "source": "/certification/:path*",
+      "destination": "https://matterhub.runasp.net/certification/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://matterhub.runasp.net/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

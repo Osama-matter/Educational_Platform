@@ -17,11 +17,19 @@ using System.Threading.Tasks;
 
 namespace EducationalPlatform.Infrastructure.Services
 {
-    internal class CourseService(ICourseRepository course_Repository, IImageService imageService, IHttpContextAccessor httpContextAccessor) : ICourseService
+    internal class CourseService(
+        ICourseRepository course_Repository,
+        IImageService imageService,
+        IHttpContextAccessor httpContextAccessor,
+        ICacheService cacheService) : ICourseService
     {
         private readonly ICourseRepository _courseRepository = course_Repository;
         private readonly IImageService _imageService = imageService;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly ICacheService _cacheService = cacheService;
+        private const string AllCoursesCacheKey = "courses_all";
+        private static string GetCourseCacheKey(Guid id) => $"course_{id}";
+
         public async Task<CourseDto> CreateAsync(CreateCourseDto requestCourse)
         {
             if (requestCourse is not Application.DTOs.Courses.CreateCourseDto createCourseDto)
@@ -34,8 +42,11 @@ namespace EducationalPlatform.Infrastructure.Services
             var course = new Course(createCourseDto.Title, createCourseDto.Description, createCourseDto.InstructorId, createCourseDto.EstimatedDurationHours, createCourseDto.IsActive, imageUrl, createCourseDto.Price , createCourseDto.NumberOfSections);
             await _courseRepository.AddAsync(course);
 
-            var request = _httpContextAccessor.HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}";
+            // Invalidate courses list cache
+            await _cacheService.RemoveByPrefixAsync("courses_");
+
+            var request = _httpContextAccessor.HttpContext?.Request;
+            var baseUrl = request != null ? $"{request.Scheme}://{request.Host}" : string.Empty;
             var courseDto = new CourseDto(course);
             courseDto.Image_URl = $"{baseUrl}{course.Image_URl}";
 
@@ -60,107 +71,116 @@ namespace EducationalPlatform.Infrastructure.Services
             }
 
             await _courseRepository.DeleteAsync(id);
+
+            // Invalidate cache for this course and all courses list
+            await _cacheService.RemoveAsync(GetCourseCacheKey(id));
+            await _cacheService.RemoveByPrefixAsync("courses_");
+
             return true;
         }
 
         public async Task<IEnumerable<CourseDto>> GetAllAsync()
         {
-            var courses = await _courseRepository.GetAllAsync();
-            if (courses == null || !courses.Any())
+            return await _cacheService.GetOrCreateAsync(AllCoursesCacheKey, async () =>
             {
-                return Enumerable.Empty<CourseDto>();
-            }
-            var request = _httpContextAccessor.HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}";
-
-            var courseDtos = courses.Select(c =>
-            {
-                var dto = new CourseDto(c);
-                dto.Image_URl = $"{baseUrl}{c.Image_URl}";
-                var instructorFullName = c.Instructor != null ? $"{c.Instructor.FirstName} {c.Instructor.LastName}".Trim() : string.Empty;
-                dto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
-                    ? instructorFullName
-                    : (!string.IsNullOrEmpty(c.Instructor?.UserName) ? c.Instructor.UserName : dto.InstructorName);
-                if (c.Reviews != null && c.Reviews.Any())
+                var courses = await _courseRepository.GetAllAsync();
+                if (courses == null || !courses.Any())
                 {
-                    dto.Reviews = c.Reviews.Select(r => new ReviewDto
+                    return Enumerable.Empty<CourseDto>();
+                }
+                var request = _httpContextAccessor.HttpContext?.Request;
+                var baseUrl = request != null ? $"{request.Scheme}://{request.Host}" : string.Empty;
+
+                var courseDtos = courses.Select(c =>
+                {
+                    var dto = new CourseDto(c);
+                    dto.Image_URl = $"{baseUrl}{c.Image_URl}";
+                    var instructorFullName = c.Instructor != null ? $"{c.Instructor.FirstName} {c.Instructor.LastName}".Trim() : string.Empty;
+                    dto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
+                        ? instructorFullName
+                        : (!string.IsNullOrEmpty(c.Instructor?.UserName) ? c.Instructor.UserName : dto.InstructorName);
+                    if (c.Reviews != null && c.Reviews.Any())
+                    {
+                        dto.Reviews = c.Reviews.Select(r => new ReviewDto
+                        {
+                            Id = r.Id,
+                            Rate = r.Rate,
+                            Comment = r.Comment,
+                            UserId = r.UserId,
+                            UserName = r.User?.UserName
+                        }).ToList();
+                    }
+                    return dto;
+                }).ToList();
+
+                return (IEnumerable<CourseDto>)courseDtos;
+            }, TimeSpan.FromMinutes(15));
+        }
+
+        public async Task<CourseDto> GetByIdAsync(Guid id)
+        {
+            return await _cacheService.GetOrCreateAsync(GetCourseCacheKey(id), async () =>
+            {
+                var course = await _courseRepository.GetByIdAsync(id);
+                if (course == null)
+                {
+                    return null!;
+                }
+                var request = _httpContextAccessor.HttpContext?.Request;
+                var baseUrl = request != null ? $"{request.Scheme}://{request.Host}" : string.Empty;
+                var courseDto = new CourseDto(course);
+                courseDto.Price = course.Price; // Ensure price is set
+                var instructorFullName = course.Instructor != null ? $"{course.Instructor.FirstName} {course.Instructor.LastName}".Trim() : string.Empty;
+                courseDto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
+                    ? instructorFullName
+                    : (!string.IsNullOrEmpty(course.Instructor?.UserName) ? course.Instructor.UserName : courseDto.InstructorName);
+                if (!string.IsNullOrEmpty(course.Image_URl))
+                {
+                    courseDto.Image_URl = $"{baseUrl}{course.Image_URl}";
+                }
+
+                if (course.Lessons != null)
+                {
+                    courseDto.Lessons = course.Lessons.OrderBy(l => l.OrderIndex).Select(l => new LessonDetailsDto
+                    {
+                        Id = l.Id,
+                        Title = l.Title,
+                        DurationMinutes = l.DurationMinutes,
+                        OrderIndex = l.OrderIndex
+                    }).ToList();
+
+                    courseDto.Quizzes = course.Lessons.SelectMany(l => l.Quizzes).Select(q => new QuizSummaryDto
+                    {
+                    }).ToList();
+                }
+
+                if (course.Reviews != null)
+                {
+                    courseDto.Reviews = course.Reviews.Select(r => new ReviewDto
                     {
                         Id = r.Id,
                         Rate = r.Rate,
                         Comment = r.Comment,
                         UserId = r.UserId,
-                        UserName = r.User?.UserName
+                        UserName = r.User?.UserName,
+                        CourseId = r.CourseId,
+                        InstructorReply = r.InstructorReply
                     }).ToList();
                 }
-                return dto;
-            });
 
-            return courseDtos;
+                if (course.CourseFiles != null)
+                {
+                    courseDto.CourseFiles = course.CourseFiles.Select(cf => new CourseFileDto
+                    {
+                        Id = cf.Id,
+                        FileName = cf.FileName,
+                        FilePath = cf.BlobStorageUrl
+                    }).ToList();
+                }
+
+                return courseDto;
+            }, TimeSpan.FromMinutes(15));
         }
-
-        public async Task<CourseDto> GetByIdAsync(Guid id)
-        {
-            var course = await _courseRepository.GetByIdAsync(id);
-            if (course == null)
-            {
-                return null;
-            }
-            var request = _httpContextAccessor.HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}";
-            var courseDto = new CourseDto(course);
-            courseDto.Price = course.Price; // Ensure price is set
-            var instructorFullName = course.Instructor != null ? $"{course.Instructor.FirstName} {course.Instructor.LastName}".Trim() : string.Empty;
-            courseDto.InstructorName = !string.IsNullOrEmpty(instructorFullName)
-                ? instructorFullName
-                : (!string.IsNullOrEmpty(course.Instructor?.UserName) ? course.Instructor.UserName : courseDto.InstructorName);
-            if (!string.IsNullOrEmpty(course.Image_URl))
-            {
-                courseDto.Image_URl = $"{baseUrl}{course.Image_URl}";
-            }
-
-            if (course.Lessons != null)
-            {
-                courseDto.Lessons = course.Lessons.OrderBy(l => l.OrderIndex).Select(l => new LessonDetailsDto
-                {
-                    Id = l.Id,
-                    Title = l.Title,
-                    DurationMinutes = l.DurationMinutes,
-                    OrderIndex = l.OrderIndex
-                }).ToList();
-
-                courseDto.Quizzes = course.Lessons.SelectMany(l => l.Quizzes).Select(q => new QuizSummaryDto
-                {
-                }).ToList();
-            }
-
-            if (course.Reviews != null)
-            {
-                courseDto.Reviews = course.Reviews.Select(r => new ReviewDto
-                {
-                    Id = r.Id,
-                    Rate = r.Rate,
-                    Comment = r.Comment,
-                    UserId = r.UserId,
-                    UserName = r.User?.UserName,
-                    CourseId = r.CourseId,
-                    InstructorReply = r.InstructorReply
-                }).ToList();
-            }
-
-            if (course.CourseFiles != null)
-            {
-                courseDto.CourseFiles = course.CourseFiles.Select(cf => new CourseFileDto
-                {
-                    Id = cf.Id,
-                    FileName = cf.FileName,
-                    FilePath = cf.BlobStorageUrl
-                }).ToList();
-            }
-
-            return courseDto;
-        }
-
-            
 
         public async Task<CourseDto> UpdateAsync(Guid id, UpdateCourseDto requestCourse)
         {
@@ -187,8 +207,12 @@ namespace EducationalPlatform.Infrastructure.Services
             course.NumberOfSections = updateCourseDto.NumberOfSections;
             await _courseRepository.UpdateAsync(course);
 
-            var request = _httpContextAccessor.HttpContext.Request;
-            var baseUrl = $"{request.Scheme}://{request.Host}";
+            // Invalidate cache
+            await _cacheService.RemoveAsync(GetCourseCacheKey(id));
+            await _cacheService.RemoveByPrefixAsync("courses_");
+
+            var request = _httpContextAccessor.HttpContext?.Request;
+            var baseUrl = request != null ? $"{request.Scheme}://{request.Host}" : string.Empty;
             var courseDto = new CourseDto(course);
             courseDto.Image_URl = $"{baseUrl}{course.Image_URl}";
 

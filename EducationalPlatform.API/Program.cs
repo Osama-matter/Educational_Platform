@@ -66,6 +66,7 @@ builder.Services.AddIdentityCore<EducationalPlatform.Domain.Entities.User>(optio
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 1;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+ ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىي";
 })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -112,7 +113,14 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseCors("AllowFrontend");
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache images and static files for 30 days in client browser and CDN
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000,immutable");
+    }
+});
 
 // app.UseHttpsRedirection();
 

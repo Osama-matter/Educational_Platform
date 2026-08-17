@@ -91,7 +91,19 @@ export class StudentDashboardComponent implements OnInit {
 
         this.certificates = certificates || [];
 
-        this.enrollments = (enrollments || []).map(e => {
+        // Strict user isolation & deduplication by courseId
+        const userEnrollments = userId 
+          ? (enrollments || []).filter(e => !e.userId || e.userId.toLowerCase() === userId.toLowerCase())
+          : (enrollments || []);
+
+        const seenCourseIds = new Set<string>();
+        const uniqueEnrollments = userEnrollments.filter(e => {
+          if (seenCourseIds.has(e.courseId)) return false;
+          seenCourseIds.add(e.courseId);
+          return true;
+        });
+
+        this.enrollments = uniqueEnrollments.map(e => {
           const course = this.coursesMap.get(e.courseId);
           return {
             ...e,

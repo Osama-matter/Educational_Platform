@@ -71,11 +71,14 @@ namespace EducationalPlatform.Infrastructure.Services
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null) return;
 
+            var isLocalhost = httpContext.Request.Host.Host.Contains("localhost") || httpContext.Request.Host.Host.Contains("127.0.0.1");
+            var isSecure = !isLocalhost || httpContext.Request.IsHttps;
+
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = httpContext.Request.IsHttps || !httpContext.Request.Host.Host.Contains("localhost"),
-                SameSite = SameSiteMode.Lax,
+                Secure = isSecure,
+                SameSite = isSecure ? SameSiteMode.None : SameSiteMode.Lax,
                 Expires = new DateTimeOffset(expiresAt),
                 Path = "/"
             };
@@ -88,11 +91,14 @@ namespace EducationalPlatform.Infrastructure.Services
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null) return;
 
+            var isLocalhost = httpContext.Request.Host.Host.Contains("localhost") || httpContext.Request.Host.Host.Contains("127.0.0.1");
+            var isSecure = !isLocalhost || httpContext.Request.IsHttps;
+
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = httpContext.Request.IsHttps || !httpContext.Request.Host.Host.Contains("localhost"),
-                SameSite = SameSiteMode.Lax,
+                Secure = isSecure,
+                SameSite = isSecure ? SameSiteMode.None : SameSiteMode.Lax,
                 Path = "/"
             };
 

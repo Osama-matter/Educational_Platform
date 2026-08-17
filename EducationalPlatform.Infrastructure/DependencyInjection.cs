@@ -19,6 +19,7 @@ namespace EducationalPlatform.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
+            services.AddSingleton<ICacheService, MemoryCacheService>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<ICourseService, CourseService>();
             services.AddScoped<ICourseRepository, CourseRepository>();

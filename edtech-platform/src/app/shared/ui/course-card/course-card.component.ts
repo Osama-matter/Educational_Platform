@@ -14,11 +14,22 @@ import { ProgressBarComponent } from '../progress-bar/progress-bar.component';
       <!-- Card Image / Ambient Banner Area -->
       <div class="relative h-48 w-full overflow-hidden bg-slate-900">
         @if (resolvedImageUrl && !imageError) {
+          <!-- Skeleton placeholder while image is loading -->
+          @if (!imageLoaded) {
+            <div class="absolute inset-0 bg-slate-800 animate-pulse flex items-center justify-center">
+              <span class="material-symbols-outlined text-3xl text-slate-600 animate-spin">progress_activity</span>
+            </div>
+          }
           <img
             [src]="resolvedImageUrl"
             [alt]="course.title"
+            loading="lazy"
+            decoding="async"
+            (load)="onImageLoad()"
             (error)="onImageError()"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            [class.opacity-0]="!imageLoaded"
+            [class.opacity-100]="imageLoaded"
+            class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
           />
         } @else {
           <!-- Rich Aesthetic Fallback Banner with Geometric Patterns -->
@@ -154,6 +165,11 @@ export class CourseCardComponent {
   @Output() enroll = new EventEmitter<string>();
 
   imageError = false;
+  imageLoaded = false;
+
+  onImageLoad(): void {
+    this.imageLoaded = true;
+  }
 
   get resolvedImageUrl(): string | undefined {
     return this.course?.imageUrl || (this.course as any)?.image_URl || (this.course as any)?.image_Url;

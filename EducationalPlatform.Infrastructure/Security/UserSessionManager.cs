@@ -1,5 +1,8 @@
 using EducationalPlatform.Application.Interfaces.Security;
 using EducationalPlatform.Domain.Entities;
+using EducationalPlatform.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Concurrent;
@@ -13,19 +16,24 @@ namespace EducationalPlatform.Infrastructure.Security
     public class UserSessionManager : IUserSessionManager
     {
         private readonly IMemoryCache _cache;
+        private readonly ApplicationDbContext _dbContext;
+        private readonly UserManager<User> _userManager;
         private static readonly ConcurrentDictionary<Guid, HashSet<string>> _userSessionIndex = new();
         private static readonly TimeSpan DefaultSessionLifetime = TimeSpan.FromDays(7);
         private const int SessionIdHexLength = 64; // 32 bytes in hex
 
-        public UserSessionManager(IMemoryCache cache)
+        public UserSessionManager(IMemoryCache cache, ApplicationDbContext dbContext, UserManager<User> userManager)
         {
             _cache = cache;
+            _dbContext = dbContext;
+            _userManager = userManager;
         }
 
-        public Task<UserSession> CreateSessionAsync(User user, IList<string> roles, TimeSpan? lifetime = null)
+        public async Task<UserSession> CreateSessionAsync(User user, IList<string> roles, TimeSpan? lifetime = null)
         {
             var duration = lifetime ?? DefaultSessionLifetime;
             var sessionId = GenerateSecureSessionId();
+            var expiresAt = DateTime.UtcNow.Add(duration);
 
             var session = new UserSession
             {
@@ -37,7 +45,7 @@ namespace EducationalPlatform.Infrastructure.Security
                 LastName = user.LastName ?? string.Empty,
                 Roles = roles.ToList(),
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.Add(duration)
+                ExpiresAt = expiresAt
             };
 
             var cacheOptions = new MemoryCacheEntryOptions
@@ -58,34 +66,93 @@ namespace EducationalPlatform.Infrastructure.Security
                     return set;
                 });
 
-            return Task.FromResult(session);
+            // Persist session to Database RefreshTokens table for survivability across server recycles
+            try
+            {
+                var dbToken = new EducationalPlatform.Domain.Entities.Auth.RefreshToken
+                {
+                    Token = sessionId,
+                    UserId = user.Id,
+                    ExpiryDate = expiresAt,
+                    IsUsed = false,
+                    IsRevoked = false
+                };
+                await _dbContext.RefreshTokens.AddAsync(dbToken);
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserSessionManager Warning] Failed to persist session to DB: {ex.Message}");
+            }
+
+            return session;
         }
 
-        public Task<UserSession?> GetSessionAsync(string sessionId)
+        public async Task<UserSession?> GetSessionAsync(string sessionId)
         {
             if (!IsValidSessionIdFormat(sessionId))
             {
-                return Task.FromResult<UserSession?>(null);
+                return null;
             }
 
+            // 1. Check L1 In-Memory Cache
             if (_cache.TryGetValue<UserSession>(GetCacheKey(sessionId), out var session) && session != null)
             {
                 if (session.ExpiresAt > DateTime.UtcNow)
                 {
-                    return Task.FromResult<UserSession?>(session);
+                    return session;
                 }
 
                 _cache.Remove(GetCacheKey(sessionId));
+                return null;
             }
 
-            return Task.FromResult<UserSession?>(null);
+            // 2. Cache miss (e.g. IIS / RunASP recycled app pool) -> fallback to Database
+            try
+            {
+                var dbToken = await _dbContext.RefreshTokens
+                    .Include(r => r.User)
+                    .FirstOrDefaultAsync(r => r.Token == sessionId && !r.IsRevoked && r.ExpiryDate > DateTime.UtcNow);
+
+                if (dbToken?.User != null)
+                {
+                    var user = dbToken.User;
+                    var roles = (await _userManager.GetRolesAsync(user)).ToList();
+
+                    var restoredSession = new UserSession
+                    {
+                        SessionId = sessionId,
+                        UserId = user.Id,
+                        Username = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        FirstName = user.FirstName ?? string.Empty,
+                        LastName = user.LastName ?? string.Empty,
+                        Roles = roles,
+                        CreatedAt = DateTime.UtcNow,
+                        ExpiresAt = dbToken.ExpiryDate
+                    };
+
+                    _cache.Set(GetCacheKey(sessionId), restoredSession, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpiration = restoredSession.ExpiresAt
+                    });
+
+                    return restoredSession;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserSessionManager Warning] DB session lookup failed: {ex.Message}");
+            }
+
+            return null;
         }
 
-        public Task InvalidateSessionAsync(string sessionId)
+        public async Task InvalidateSessionAsync(string sessionId)
         {
             if (!IsValidSessionIdFormat(sessionId))
             {
-                return Task.CompletedTask;
+                return;
             }
 
             if (_cache.TryGetValue<UserSession>(GetCacheKey(sessionId), out var session) && session != null)
@@ -100,7 +167,20 @@ namespace EducationalPlatform.Infrastructure.Security
             }
 
             _cache.Remove(GetCacheKey(sessionId));
-            return Task.CompletedTask;
+
+            try
+            {
+                var dbToken = await _dbContext.RefreshTokens.FirstOrDefaultAsync(r => r.Token == sessionId);
+                if (dbToken != null)
+                {
+                    dbToken.IsRevoked = true;
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserSessionManager Warning] DB session revoke failed: {ex.Message}");
+            }
         }
 
         public Task InvalidateUserSessionsAsync(Guid userId)

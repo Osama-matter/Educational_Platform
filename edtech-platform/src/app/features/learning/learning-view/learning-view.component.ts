@@ -20,6 +20,7 @@ import { ForumService } from '../../../core/services/forum.service';
 import { QuizzesService } from '../../../core/services/quizzes.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthStore } from '../../../core/services/auth.store';
+import { ThemeService } from '../../../core/services/theme.service';
 import { LessonDto, CourseFileDto } from '../../../core/models/lesson.models';
 import { CourseSummary } from '../../../core/models/course.models';
 import { ForumThreadDto, ForumPostDto } from '../../../core/models/forum.models';
@@ -38,6 +39,7 @@ export class LearningViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   public authStore = inject(AuthStore);
+  public themeService = inject(ThemeService);
   public toast = inject(ToastService);
   private lessonsService = inject(LessonsService);
   private coursesService = inject(CoursesService);
