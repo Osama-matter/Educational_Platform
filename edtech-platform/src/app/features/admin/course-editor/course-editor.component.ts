@@ -51,6 +51,7 @@ export class CourseEditorComponent implements OnInit {
     courseId: '',
     title: '',
     content: '',
+    videoUrl: '',
     orderIndex: 1,
     durationMinutes: 15
   };
@@ -244,6 +245,7 @@ export class CourseEditorComponent implements OnInit {
       courseId: targetCourse.id,
       title: '',
       content: '',
+      videoUrl: '',
       orderIndex: nextOrder,
       durationMinutes: 15
     };
@@ -258,6 +260,7 @@ export class CourseEditorComponent implements OnInit {
       courseId: course.id,
       title: lesson.title,
       content: lesson.content || '',
+      videoUrl: lesson.videoUrl || '',
       orderIndex: lesson.orderIndex ?? lesson.order ?? 1,
       durationMinutes: lesson.durationMinutes || 15
     };
@@ -310,6 +313,7 @@ export class CourseEditorComponent implements OnInit {
                 ...list[idx],
                 title: this.newLesson.title,
                 content: this.newLesson.content,
+                videoUrl: this.newLesson.videoUrl,
                 orderIndex: this.newLesson.orderIndex,
                 durationMinutes: this.newLesson.durationMinutes
               };

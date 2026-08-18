@@ -1,4 +1,4 @@
-<div class="bg-background text-on-background flex flex-col font-sans min-h-screen pb-32 antialiased selection:bg-primary selection:text-white" dir="rtl">
+<div class="bg-background text-on-background flex flex-col font-arabic min-h-screen pb-32 antialiased selection:bg-primary selection:text-white" dir="rtl">
 
   <!-- Top Learning Navigation Header -->
   <header class="bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant sticky top-0 z-30 shadow-2xs">
@@ -17,10 +17,10 @@
       <!-- Course & Lesson Title Center -->
       <div class="text-center min-w-0 flex-1 px-2">
         <h1 class="font-bold text-xs sm:text-sm text-on-surface truncate leading-tight">
-          {{ course?.title || 'الدورة التعليمية' }}
+          <bdi>{{ course?.title || 'الدورة التعليمية' }}</bdi>
         </h1>
         <span class="text-[11px] text-on-surface-variant truncate block">
-          {{ activeLesson?.title || 'محتوى الدرس' }}
+          <bdi>{{ activeLesson?.title || 'محتوى الدرس' }}</bdi>
         </span>
       </div>
 
@@ -142,14 +142,14 @@
 
       <!-- Lesson Metadata Header -->
       <div class="space-y-2 text-right pt-1">
-        <span class="text-xs sm:text-sm font-bold text-secondary block font-sans">
+        <span class="text-xs sm:text-sm font-bold text-secondary block font-arabic">
           الوحدة {{ activeLesson?.orderIndex ?? 1 }} • الدرس {{ activeLesson?.orderIndex ?? 1 }}
           @if (activeLesson?.durationMinutes) {
             <span class="text-on-surface-variant font-normal mr-2">({{ activeLesson?.durationMinutes }} دقيقة)</span>
           }
         </span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-on-surface leading-snug">
-          {{ activeLesson?.title }}
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-on-surface leading-snug font-arabic">
+          <bdi>{{ activeLesson?.title }}</bdi>
         </h2>
       </div>
 
@@ -629,7 +629,7 @@
                     {{ completedLessonIds.has(lesson.id) ? 'check_circle' : 'play_circle' }}
                   </span>
                   <div>
-                    <div class="text-sm">{{ idx + 1 }}. {{ lesson.title }}</div>
+                    <div class="text-sm font-bold"><bdi>{{ idx + 1 }}. {{ lesson.title }}</bdi></div>
                     <span class="text-xs text-on-surface-variant font-normal">المدة: {{ lesson.durationMinutes }} دقيقة</span>
                   </div>
                 </div>

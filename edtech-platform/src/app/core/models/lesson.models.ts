@@ -14,6 +14,7 @@ export interface CreateLessonDto {
   courseId: string;
   title: string;
   content?: string;
+  videoUrl?: string;
   orderIndex: number;
   durationMinutes?: number;
 }

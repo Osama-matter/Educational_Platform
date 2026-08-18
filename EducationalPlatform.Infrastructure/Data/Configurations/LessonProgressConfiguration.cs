@@ -19,7 +19,7 @@ namespace EducationalPlatform.Infrastructure.Data.Configurations
             builder.HasOne(lp => lp.Lesson)
                    .WithMany(l => l.LessonProgresses)
                    .HasForeignKey(lp => lp.LessonId)
-                   .OnDelete(DeleteBehavior.Restrict);
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
