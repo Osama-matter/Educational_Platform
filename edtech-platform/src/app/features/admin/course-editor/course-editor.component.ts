@@ -256,11 +256,24 @@ export class CourseEditorComponent implements OnInit {
   openEditLessonModal(course: CourseSummary, lesson: LessonDto): void {
     this.editingLessonId = lesson.id;
     this.selectedCourseForLesson = course;
+
+    let videoUrl = lesson.videoUrl || '';
+    let content = lesson.content || '';
+
+    // If videoUrl was not explicitly populated, extract from content
+    if (!videoUrl && content) {
+      const urlMatch = content.match(/https?:\/\/[^\s]+/i);
+      if (urlMatch) {
+        videoUrl = urlMatch[0];
+        content = content.replace(urlMatch[0], '').trim();
+      }
+    }
+
     this.newLesson = {
       courseId: course.id,
       title: lesson.title,
-      content: lesson.content || '',
-      videoUrl: lesson.videoUrl || '',
+      content: content,
+      videoUrl: videoUrl,
       orderIndex: lesson.orderIndex ?? lesson.order ?? 1,
       durationMinutes: lesson.durationMinutes || 15
     };
