@@ -1,4 +1,4 @@
-﻿using EducationalPlatform.Domain.Entities.progress;
+using EducationalPlatform.Domain.Entities.progress;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -26,6 +26,9 @@ namespace EducationalPlatform.Domain.Entities.Leeson
         [MaxLength(10000)]
         public string Content { get; set; }
 
+        [MaxLength(2000)]
+        public string? VideoUrl { get; set; }
+
         [Required]
         public int OrderIndex { get; set; }
 
@@ -51,7 +54,7 @@ namespace EducationalPlatform.Domain.Entities.Leeson
             Quizzes = new HashSet<Quiz>();
         }
 
-        public Lesson(Guid courseId, string title, string content, int orderIndex, int? durationMinutes)
+        public Lesson(Guid courseId, string title, string content, int orderIndex, int? durationMinutes, string? videoUrl = null)
             : this()
         {
             CourseId = courseId;
@@ -59,6 +62,7 @@ namespace EducationalPlatform.Domain.Entities.Leeson
             Content = content;
             OrderIndex = orderIndex;
             DurationMinutes = durationMinutes;
+            VideoUrl = videoUrl;
         }
     }
 }

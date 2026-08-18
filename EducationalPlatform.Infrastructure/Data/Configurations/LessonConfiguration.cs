@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,10 @@ namespace EducationalPlatform.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Lesson> builder)
         {
+            builder.Property(l => l.VideoUrl)
+                   .HasMaxLength(2000)
+                   .IsRequired(false);
+
             builder.HasOne(l => l.Course)
                    .WithMany(c => c.Lessons)
                    .HasForeignKey(l => l.CourseId)

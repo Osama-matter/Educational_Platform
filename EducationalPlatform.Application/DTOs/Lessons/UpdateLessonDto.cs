@@ -15,6 +15,7 @@ namespace EducationalPlatform.Application.DTOs.Lessons
         {
             lesson.Title = Title;
             lesson.Content = Content;
+            lesson.VideoUrl = VideoUrl;
             lesson.OrderIndex = OrderIndex;
             lesson.DurationMinutes = DurationMinutes;
         }

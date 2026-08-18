@@ -32,7 +32,7 @@ namespace EducationalPlatform.Application.DTOs.Lessons
             Content = lesson.Content;
             OrderIndex = lesson.OrderIndex;
             DurationMinutes = lesson.DurationMinutes;
-            VideoUrl = lesson.CourseFiles?.FirstOrDefault(cf => cf.FileType == CourseFileType.Video)?.BlobStorageUrl;
+            VideoUrl = lesson.VideoUrl ?? lesson.CourseFiles?.FirstOrDefault(cf => cf.FileType == CourseFileType.Video)?.BlobStorageUrl;
             CreatedAt = lesson.CreatedAt;
             UpdatedAt = lesson.UpdatedAt;
         }

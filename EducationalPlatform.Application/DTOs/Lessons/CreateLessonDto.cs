@@ -14,7 +14,7 @@ namespace EducationalPlatform.Application.DTOs.Lessons
 
         public Lesson ToEntity()
         {
-            return new Lesson(CourseId, Title, Content, OrderIndex, DurationMinutes);
+            return new Lesson(CourseId, Title, Content, OrderIndex, DurationMinutes, VideoUrl);
         }
     }
 }
